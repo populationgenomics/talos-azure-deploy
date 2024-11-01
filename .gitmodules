@@ -1,0 +1,3 @@
+[submodule "talos"]
+	path = talos
+	url = https://github.com/populationgenomics/talos
