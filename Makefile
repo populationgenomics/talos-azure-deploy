@@ -16,17 +16,38 @@ runtime: push-talos push-talos-deploy
 	@echo "$(ANSI_GREEN)====== Done! ======$(ANSI_RESET)"
 
 .PHONY: push-talos
-push-talos: build-talos
-	@echo "az acr push or whatever"
+push-talos: build-talos get-talos-version check-env acr-login
+	@echo "pushing talos docker image"
+	docker push $(DEPLOYMENT_ACR).azurecr.io/talos:$(TALOS_VERSION)
 
 .PHONY: push-talos-deploy
-push-talos: build-talos-deploy
-	@echo "az acr push or whatever"
+push-talos-deploy: build-talos-deploy get-talos-version check-env acr-login
+	@echo "pushing talos-deploy docker image"
+	docker push $(DEPLOYMENT_ACR).azurecr.io/talos-deploy:$(TALOS_VERSION)
 
 .PHONY: build-talos
-build-talos:
-	@echo "docker build -t talos ."
+build-talos: get-talos-version check-env
+	@echo "buliding talos docker image"
+	# docker build --build-arg cloud=none -t talos:$(TALOS_VERSION) -f talos/Dockerfile talos/
+	docker build -t talos:$(TALOS_VERSION) -f talos/Dockerfile talos/
+	docker tag talos:$(TALOS_VERSION) $(DEPLOYMENT_ACR).azurecr.io/talos:$(TALOS_VERSION)
 
 .PHONY: build-talos-deploy
-build-talos-deploy:
-	@echo "docker build -t talos-deploy ."
+build-talos-deploy: get-talos-version check-env
+	@echo "building talos-deploy docker image"
+	docker build --build-arg TALOS_VERSION=$(TALOS_VERSION) -t talos-deploy:$(TALOS_VERSION) .	
+	docker tag talos-deploy:$(TALOS_VERSION) $(DEPLOYMENT_ACR).azurecr.io/talos-deploy:$(TALOS_VERSION)
+
+get-talos-version:
+	$(eval TALOS_VERSION := $(shell grep -oP '(?<=current_version = ).*' talos/.bumpversion.cfg))
+	@echo "TALOS_VERSION is $(TALOS_VERSION)"
+
+.PHONY: check-env
+check-env:
+ifndef DEPLOYMENT_ACR
+	$(error DEPLOYMENT_ACR is not set)
+endif
+
+.PHONY: acr-login
+acr-login:
+	az acr login --name $(DEPLOYMENT_ACR)
