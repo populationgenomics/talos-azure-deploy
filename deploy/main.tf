@@ -1,6 +1,7 @@
 resource "azurerm_resource_group" "rg" {
   name     = "${var.deployment_name}-rg"
   location = var.region
+  lifecycle { ignore_changes = [tags] }
 }
 
 resource "azurerm_log_analytics_workspace" "law" {
@@ -12,14 +13,20 @@ resource "azurerm_log_analytics_workspace" "law" {
 }
 
 resource "azurerm_container_app_environment" "env" {
-  name                = "env0"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  name                       = "env0"
+  location                   = azurerm_resource_group.rg.location
+  resource_group_name        = azurerm_resource_group.rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 }
 
+resource "azurerm_user_assigned_identity" "umi" {
+  name                = "${var.deployment_name}-umi"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = var.region
+}
+
 resource "azurerm_container_app_job" "job" {
-  name                         = "job0"
+  name                         = "talos-run"
   location                     = azurerm_resource_group.rg.location
   resource_group_name          = azurerm_resource_group.rg.name
   container_app_environment_id = azurerm_container_app_environment.env.id
@@ -31,12 +38,51 @@ resource "azurerm_container_app_job" "job" {
     replica_completion_count = 1
   }
 
+  identity {
+    type         = "UserAssigned"
+    identity_ids = [azurerm_user_assigned_identity.umi.id]
+  }
+
+  registry {
+    server   = azurerm_container_registry.acr.login_server
+    identity = azurerm_user_assigned_identity.umi.id
+  }
+
   template {
     container {
+      # Bootstrap issue: when first creating the infrastructure, the private image is not yet available.
+      # Define the job with a public image here, then override it with the private image at job run time.
+      # image  = "${azurerm_container_registry.acr.login_server}/talos-run:latest"
       image  = "mcr.microsoft.com/k8se/quickstart-jobs:latest"
-      name   = "testcontainerappsjob0"
+      name   = "talos-run"
       cpu    = 0.5
       memory = "1Gi"
     }
   }
+
+  depends_on = [azurerm_role_assignment.acr_pull]
+}
+
+resource "azurerm_container_registry" "acr" {
+  name                   = "${var.deployment_name}acr"
+  resource_group_name    = azurerm_resource_group.rg.name
+  location               = azurerm_resource_group.rg.location
+  sku                    = "Premium"
+  anonymous_pull_enabled = false
+  admin_enabled          = false
+}
+
+# TODO: auth model for makefile build/push?
+resource "azurerm_role_assignment" "acr_pull" {
+  scope                = azurerm_container_registry.acr.id
+  principal_id         = azurerm_user_assigned_identity.umi.principal_id
+  role_definition_name = "AcrPull"
+}
+
+output "job_id" {
+  value = azurerm_container_app_job.job.id
+}
+
+output "job_identity" {
+  value = azurerm_container_app_job.job.identity
 }
