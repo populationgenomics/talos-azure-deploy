@@ -2,6 +2,7 @@
 # 	make				    : see `update-images`
 #	make update-images	    : update the Talos and job images in the Azure Container Registry
 #	make run-job		    : run a job in the Azure Container App using the latest Talos job image
+include deploy/deployment.env
 
 ANSI_GREEN := \033[0;32m
 ANSI_GREY := \033[0;90m
@@ -10,17 +11,19 @@ ANSI_RESET := \033[0;0m
 .DEFAULT_GOAL := update-images
 
 .PHONY: update-images
-update-images: update-job-image
+update-images: update-talos-image update-job-image
 	@echo
 	@echo "$(ANSI_GREEN)====== Done! ======$(ANSI_RESET)"
 
-# Fill in Azure resource names from deployment info.
+# Fill in Azure resource names from deployment info. Variables are read from deploy/deployment.env.
 .PHONY: get-deployment-vars
 get-deployment-vars:
-	@echo "$(ANSI_GREY)Reading deployment variables from deploy/deployment.env...$(ANSI_RESET)"
-	@bash -c 'set -o allexport; source deploy/deployment.env; set +o allexport'
+	@echo "$(ANSI_GREY)Building deployment variables from deploy/deployment.env...$(ANSI_RESET)"
 ifndef DEPLOYMENT_NAME
-	$(error DEPLOYMENT_NAME is not set)
+	$(error DEPLOYMENT_NAME is not set - check deploy/deployment.env)
+endif
+ifndef DEPLOYMENT_SUBSCRIPTION
+	$(error DEPLOYMENT_SUBSCRIPTION is not set - check deploy/deployment.env)
 endif
 	@echo "$(ANSI_BLUE)DEPLOYMENT_NAME is $(DEPLOYMENT_NAME)$(ANSI_RESET)"
 	$(eval DEPLOYMENT_ACR := $(DEPLOYMENT_NAME)acr)
@@ -72,5 +75,6 @@ update-job-image: build-job push-job
 run-job: get-talos-version get-deployment-vars
 	az containerapp job start --name "talos-run" --resource-group $(DEPLOYMENT_RG) \
 		--image $(DEPLOYMENT_ACR).azurecr.io/talos-run:$(TALOS_VERSION) \
+		--subscription $(DEPLOYMENT_SUBSCRIPTION) \
 		--command "/bin/bash" "/scripts/test_runner.sh" \
 		--args "hello-world"
