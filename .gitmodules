@@ -1,3 +1,6 @@
 [submodule "talos"]
 	path = talos
 	url = https://github.com/populationgenomics/talos
+[submodule "images"]
+	path = images
+	url = https://github.com/populationgenomics/images.git
