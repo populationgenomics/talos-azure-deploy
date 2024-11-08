@@ -4,6 +4,8 @@
 #	make run-job		    : run a job in the Azure Container App using the latest Talos job image
 include deploy/deployment.env
 
+# docker build -t vep:release_110.1 -t talosacr.azurecr.io/vep:release_110.1 -f images/images/vep_110/Dockerfile .
+
 ANSI_GREEN := \033[0;32m
 ANSI_GREY := \033[0;90m
 ANSI_BLUE := \033[0;36m
