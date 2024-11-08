@@ -1,5 +1,2 @@
 .data
-.env
-
-# hail log files
-hail-*.log
+.reference
