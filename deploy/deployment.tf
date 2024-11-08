@@ -44,7 +44,7 @@ variable "deployment_name" {
     ])
     error_message = "Variable deployment_name must be 8-16 characters lowercase alphanumeric."
   }
-  default = "talosmsr0"
+  default = "talos0msr"
 }
 variable "region" {
   description = "Azure region in which to deploy resources (e.g. 'eastus')."
@@ -56,11 +56,11 @@ variable "tenant_id" {
   description = "Tenant in which to deploy resources."
   type        = string
   nullable    = false
-  default     = "72f988bf-86f1-41af-91ab-2d7cd011db47"
+  default     = "b7e69ef3-619e-4cb7-a4e5-80110816cdf7"
 }
 variable "subscription_id" {
   description = "Subscription in which to deploy resources."
   type        = string
   nullable    = false
-  default     = "a0e0e744-06b2-4fd3-9230-ebf8ef1ac4c8"
+  default     = "12ab51c6-da79-4a99-8dec-3d2decc97343"
 }
