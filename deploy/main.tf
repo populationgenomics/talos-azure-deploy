@@ -78,11 +78,3 @@ resource "azurerm_role_assignment" "acr_pull" {
   principal_id         = azurerm_user_assigned_identity.umi.principal_id
   role_definition_name = "AcrPull"
 }
-
-output "job_id" {
-  value = azurerm_container_app_job.job.id
-}
-
-output "job_identity" {
-  value = azurerm_container_app_job.job.identity
-}
