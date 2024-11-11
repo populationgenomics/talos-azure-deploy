@@ -13,10 +13,17 @@ resource "azurerm_log_analytics_workspace" "law" {
 }
 
 resource "azurerm_container_app_environment" "env" {
-  name                       = "env0"
+  name                       = "${var.deployment_name}env"
   location                   = azurerm_resource_group.rg.location
   resource_group_name        = azurerm_resource_group.rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
+
+  infrastructure_resource_group_name = "${var.deployment_name}-capp-rg"
+  infrastructure_subnet_id           = azurerm_subnet.ca_subnet.id
+  workload_profile {
+    name                  = "Consumption"
+    workload_profile_type = "Consumption"
+  }
 }
 
 resource "azurerm_user_assigned_identity" "umi" {
@@ -49,6 +56,16 @@ resource "azurerm_container_app_job" "job" {
   }
 
   template {
+    volume {
+      storage_type = "AzureFile"
+      storage_name = azurerm_container_app_environment_storage.reference_storage.name
+      name         = "reference-volume"
+    }
+    volume {
+      storage_type = "AzureFile"
+      storage_name = azurerm_container_app_environment_storage.data_storage.name
+      name         = "data-volume"
+    }
     container {
       # Bootstrap issue: when first creating the infrastructure, the private image is not yet available.
       # Define the job with a public image here, then override it with the private image at job run time.
@@ -57,6 +74,14 @@ resource "azurerm_container_app_job" "job" {
       name   = "talos-run"
       cpu    = 0.5
       memory = "1Gi"
+      volume_mounts {
+        name = "reference-volume"
+        path = "/reference"
+      }
+      volume_mounts {
+        name = "data-volume"
+        path = "/data"
+      }
     }
   }
 
