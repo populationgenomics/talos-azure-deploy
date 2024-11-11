@@ -27,6 +27,19 @@ Same as above, plus your data need to be in cloud storage somewhere
 
 requires make, terraform, az, jq, docker
 
+#### Input data requirements
+
+See if these are articulated in the talos README.
+
+VCF must conform to VCF specification XYZ.
+Must be normalized and have multi-allelic variants split out into individual rows.
+
+Pedigree file conforms to standard .PED file format. 
+
+[Optional] Phenopackets spec ... TODO
+
+
+
 ## I am an advanced Talos user and I want to modify pipeline behavior
 
 ## I am an infrastructure administrator and I want to host my own talos-deploy Docker image
