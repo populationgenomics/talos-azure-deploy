@@ -21,7 +21,6 @@ update-images: update-talos-job
 # Fill in Azure resource names from deployment info. Variables are read from deploy/deployment.env.
 .PHONY: get-deployment-vars
 get-deployment-vars:
-	@echo "$(ANSI_GREY)Reading deployment variables from deploy/deployment.env...$(ANSI_RESET)"
 ifndef DEPLOYMENT_NAME
 	$(error DEPLOYMENT_NAME is not set - check deploy/deployment.env)
 endif
@@ -31,6 +30,7 @@ endif
 	@echo "$(ANSI_BLUE)DEPLOYMENT_NAME is $(DEPLOYMENT_NAME)$(ANSI_RESET)"
 	$(eval DEPLOYMENT_ACR := $(DEPLOYMENT_NAME)acr)
 	$(eval DEPLOYMENT_RG := $(DEPLOYMENT_NAME)-rg)
+	$(eval DEPLOYMENT_STORAGE := $(DEPLOYMENT_NAME)sa)
 
 # Get the latest Talos version from the bumpversion config file in the submodule.
 # Use that as the version for talos-deploy.
@@ -121,3 +121,36 @@ run-test-job: get-td-version get-deployment-vars
 		--subscription $(DEPLOYMENT_SUBSCRIPTION) \
 		--command "/bin/bash" "/scripts/test_runner.sh" \
 		--args "hello-world"
+
+.share-creds: get-deployment-vars
+	STORAGE_ACCOUNT_KEY=$(az storage account keys list \
+		--resource-group $(DEPLOYMENT_RG)
+		--account-name $(DEPLOYMENT_STORAGE) \
+		--query "[0].value" --output tsv | tr -d '"')
+	@echo "username=$(DEPLOYMENT_STORAGE);password=$(STORAGE_ACCOUNT_KEY)" > .share-creds
+
+.PHONY: mount-all-shares
+mount-all-shares:
+	$(MAKE) mount-share SHARE_NAME=data
+	$(MAKE) mount-share SHARE_NAME=reference
+
+.PHONY: mount-share
+mount-share: get-deployment-vars
+ifndef SHARE_NAME
+	$(error SHARE_NAME undefined - specify "data" or "reference")
+endif
+	mkdir ./.$(SHARE_NAME)
+	@echo "$(ANSI_GREY)Fetching storage key and mounting $(SHARE_NAME) share locally...$(ANSI_RESET)"
+	STORAGE_KEY=$$(az storage account keys list --resource-group $(DEPLOYMENT_RG) --account-name $(DEPLOYMENT_STORAGE) --query "[0].value" --output tsv | tr -d '"') && \
+	sudo mount -t cifs //$(DEPLOYMENT_STORAGE).file.core.windows.net/$(SHARE_NAME) ./.$(SHARE_NAME) \
+		-o vers=3.1.1,username=$(DEPLOYMENT_STORAGE),password=$$STORAGE_KEY,dir_mode=0777,file_mode=0777
+	@echo "$(ANSI_GREEN)Successfully mounted $(ANSI_RESET)./.$(SHARE_NAME)"
+
+.PHONY: unmount-share
+unmount-share:
+ifndef SHARE_NAME
+	$(error SHARE_NAME undefined - specify "data" or "reference")
+endif
+	@echo "$(ANSI_GREY)Unmounting $(SHARE_NAME) share...$(ANSI_RESET)"
+	sudo umount ./.$(SHARE_NAME) && rmdir ./.$(SHARE_NAME)
+	@echo "$(ANSI_GREEN)Successfully unmounted $(ANSI_RESET)./.$(SHARE_NAME)"

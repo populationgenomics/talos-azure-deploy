@@ -19,7 +19,6 @@ resource "azurerm_container_app_environment" "env" {
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
   infrastructure_resource_group_name = "${var.deployment_name}-capp-rg"
-  infrastructure_subnet_id           = azurerm_subnet.ca_subnet.id
   workload_profile {
     name                  = "Consumption"
     workload_profile_type = "Consumption"
