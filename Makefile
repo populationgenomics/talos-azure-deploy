@@ -1,26 +1,29 @@
 # Typical usages of make for this project are listed below.
 # 	make				    : see `update-images`
 #	make update-images	    : update the Talos and VEP run images in the Azure Container Registry
-#	make run-test-job		    : run a job in the Azure Container App using the latest Talos job image
+#   make run-talos-job      : run a talos_runner job in the Azure Container Env using the latest Talos job image
+#   make run-vep-job        : run a vep_runner job in the Azure Container Env using the latest VEP job image
+#   make mount-all          : mount the data and reference shares locally
+#   make unmount-all        : unmount/delete the local data and reference shares
+#   make mount-share        : mount a specific share locally (SHARE_NAME=<share>)
 include deploy/deployment.env
-
-# docker build -t vep:release_110.1 -t talosacr.azurecr.io/vep:release_110.1 -f images/images/vep_110/Dockerfile .
 
 ANSI_GREEN := \033[0;32m
 ANSI_GREY := \033[0;90m
 ANSI_BLUE := \033[0;36m
 ANSI_RESET := \033[0;0m
+
 .DEFAULT_GOAL := update-images
 # default share: data
 SHARE_NAME ?= data
 
-# update-vep-job
 .PHONY: update-images
-update-images: update-talos-job
+update-images: update-talos-job update-vep-job
 	@echo
 	@echo "$(ANSI_GREEN)====== Done! ======$(ANSI_RESET)"
 
-# Fill in Azure resource names from deployment info. Variables are read from deploy/deployment.env.
+#################
+### UTILS
 .PHONY: get-deployment-vars
 get-deployment-vars:
 ifndef DEPLOYMENT_NAME
@@ -68,7 +71,7 @@ update-talos-job: build-talos-job push-talos-job
 run-talos-job: update-talos-job get-deployment-vars get-td-version
 	docker run -it --mount type=bind,source=/home/azureuser/talos-deploy/.reference,target=/talos-deploy/reference --mount type=bind,source=/home/azureuser/talos-deploy/.data,target=/talos-deploy/data talos-run:$(TD_VERSION) /bin/bash /scripts/talos_runner.sh
 
-	# az containerapp job start --name "talos-run" --resource-group $(DEPLOYMENT_RG) \
+	# az containerapp job start --name "job-runner" --resource-group $(DEPLOYMENT_RG) \
 	# 	--image $(DEPLOYMENT_ACR).azurecr.io/talos-run:$(TD_VERSION) \
 	# 	--subscription $(DEPLOYMENT_SUBSCRIPTION) \
 	# 	--command "/bin/bash" "/scripts/talos_runner.sh" \
@@ -79,7 +82,7 @@ run-talos-job: update-talos-job get-deployment-vars get-td-version
 .PHONY: push-vep-job
 push-vep-job: get-td-version get-deployment-vars acr-login
 	@echo "$(ANSI_GREY)Pushing latest vep-run docker image...$(ANSI_RESET)"
-	docker push $(DEPLOYMENT_ACR).azurecr.io/vep-run:$(VEP_VERSION)
+	docker push $(DEPLOYMENT_ACR).azurecr.io/vep-run:$(TD_VERSION)
 	docker push $(DEPLOYMENT_ACR).azurecr.io/vep-run:latest
 
 .PHONY: build-vep-job
@@ -99,42 +102,40 @@ update-vep-job: build-vep-job push-vep-job
 
 .PHONY: run-vep-job
 run-vep-job: update-vep-job get-deployment-vars get-td-version
-	docker run -it --mount type=bind,source=/home/azureuser/talos-deploy/.reference,target=/talos-deploy/reference --mount type=bind,source=/home/azureuser/talos-deploy/.data,target=/talos-deploy/data vep-run:$(TD_VERSION) /bin/bash scripts/vep_runner.sh
+#	docker run -it --mount type=bind,source=/home/azureuser/talos-deploy/.reference,target=/reference --mount type=bind,source=/home/azureuser/talos-deploy/.data,target=/data vep-run:$(TD_VERSION) /bin/bash scripts/vep_runner.sh
+	az containerapp job start --name "job-runner" --resource-group $(DEPLOYMENT_RG) \
+		--image $(DEPLOYMENT_ACR).azurecr.io/vep-run:$(TD_VERSION) \
+		--subscription $(DEPLOYMENT_SUBSCRIPTION) \
+		--command "/bin/bash" "/scripts/vep_runner.sh"
+		--args "/data/input/input.vcf.bgz"
 
-	# az containerapp job start --name "vep-run" --resource-group $(DEPLOYMENT_RG) \
-	# 	--image $(DEPLOYMENT_ACR).azurecr.io/vep-run:$(TD_VERSION) \
-	# 	--subscription $(DEPLOYMENT_SUBSCRIPTION) \
-	# 	--command "/bin/bash" "/scripts/vep_runner.sh"
-	# 	--args "/talos-deploy/data/input/input.vcf.bgz"
-
-.PHONY: run-references-job
-run-references-job: update-talos-job get-deployment-vars get-td-version
-	docker run -it --mount type=bind,source=/home/azureuser/talos-deploy/.reference2,target=/talos-deploy/reference talos-run:$(TD_VERSION) /bin/bash /scripts/references_runner.sh
-
-	# az containerapp job start --name "references-run" --resource-group $(DEPLOYMENT_RG) \
-	# 	--image $(DEPLOYMENT_ACR).azurecr.io/talos-run:$(TD_VERSION) \
-	# 	--subscription $(DEPLOYMENT_SUBSCRIPTION) \
-	# 	--command "/bin/bash" "/scripts/references_runner.sh"
+# .PHONY: run-references-job
+# run-references-job: update-talos-job get-deployment-vars get-td-version
+# #	docker run -it --mount type=bind,source=/home/azureuser/talos-deploy/.reference2,target=/reference talos-run:$(TD_VERSION) /bin/bash /scripts/references_runner.sh
+# 	az containerapp job start --name "job-runner" --resource-group $(DEPLOYMENT_RG) \
+# 		--image $(DEPLOYMENT_ACR).azurecr.io/talos-run:$(TD_VERSION) \
+# 		--subscription $(DEPLOYMENT_SUBSCRIPTION) \
+# 		--command "/bin/bash" "/scripts/references_runner.sh"
 
 .PHONY: run-test-job
 run-test-job: get-td-version get-deployment-vars
-	az containerapp job start --name "talos-run" --resource-group $(DEPLOYMENT_RG) \
+	az containerapp job start --name "job-runner" --resource-group $(DEPLOYMENT_RG) \
 		--image $(DEPLOYMENT_ACR).azurecr.io/talos-run:$(TD_VERSION) \
 		--subscription $(DEPLOYMENT_SUBSCRIPTION) \
 		--command "/bin/bash" "/scripts/test_runner.sh" \
 		--args "hello-world"
 
-.share-creds: get-deployment-vars
-	STORAGE_ACCOUNT_KEY=$(az storage account keys list \
-		--resource-group $(DEPLOYMENT_RG)
-		--account-name $(DEPLOYMENT_STORAGE) \
-		--query "[0].value" --output tsv | tr -d '"')
-	@echo "username=$(DEPLOYMENT_STORAGE);password=$(STORAGE_ACCOUNT_KEY)" > .share-creds
-
-.PHONY: mount-all-shares
-mount-all-shares:
+#################
+### MOUNTS
+.PHONY: mount-all
+mount-all:
 	$(MAKE) mount-share SHARE_NAME=data
 	$(MAKE) mount-share SHARE_NAME=reference
+
+.PHONY: unmount-all
+unmount-all:
+	$(MAKE) unmount-share SHARE_NAME=data
+	$(MAKE) unmount-share SHARE_NAME=reference
 
 .PHONY: mount-share
 mount-share: get-deployment-vars

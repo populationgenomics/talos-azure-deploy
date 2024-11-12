@@ -33,7 +33,7 @@ resource "azurerm_user_assigned_identity" "umi" {
 }
 
 resource "azurerm_container_app_job" "job" {
-  name                         = "talos-run"
+  name                         = "job-runner"
   location                     = azurerm_resource_group.rg.location
   resource_group_name          = azurerm_resource_group.rg.name
   container_app_environment_id = azurerm_container_app_environment.env.id
@@ -68,11 +68,11 @@ resource "azurerm_container_app_job" "job" {
       name         = "data-volume"
     }
     container {
-      # Bootstrap issue: when first creating the infrastructure, the private image is not yet available.
-      # Define the job with a public image here, then override it with the private image at job run time.
-      # image  = "${azurerm_container_registry.acr.login_server}/talos-run:latest"
+      # Bootstrap issue: when first creating the infrastructure, the private images aren't yet available.
+      # Define the job with a placeholder image here, then override it with the private image at job run time.
+      # e.g. image  = "${azurerm_container_registry.acr.login_server}/talos-run:latest"
       image  = "mcr.microsoft.com/k8se/quickstart-jobs:latest"
-      name   = "talos-run"
+      name   = "job-runner"
       cpu    = 0.5
       memory = "1Gi"
       volume_mounts {
