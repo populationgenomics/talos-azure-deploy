@@ -11,6 +11,8 @@ ANSI_GREY := \033[0;90m
 ANSI_BLUE := \033[0;36m
 ANSI_RESET := \033[0;0m
 .DEFAULT_GOAL := update-images
+# default share: data
+SHARE_NAME ?= data
 
 # update-vep-job
 .PHONY: update-images
@@ -136,9 +138,6 @@ mount-all-shares:
 
 .PHONY: mount-share
 mount-share: get-deployment-vars
-ifndef SHARE_NAME
-	$(error SHARE_NAME undefined - specify "data" or "reference")
-endif
 	mkdir ./.$(SHARE_NAME)
 	@echo "$(ANSI_GREY)Fetching storage key and mounting $(SHARE_NAME) share locally...$(ANSI_RESET)"
 	STORAGE_KEY=$$(az storage account keys list --resource-group $(DEPLOYMENT_RG) --account-name $(DEPLOYMENT_STORAGE) --query "[0].value" --output tsv | tr -d '"') && \
@@ -148,9 +147,6 @@ endif
 
 .PHONY: unmount-share
 unmount-share:
-ifndef SHARE_NAME
-	$(error SHARE_NAME undefined - specify "data" or "reference")
-endif
 	@echo "$(ANSI_GREY)Unmounting $(SHARE_NAME) share...$(ANSI_RESET)"
 	sudo umount ./.$(SHARE_NAME) && rmdir ./.$(SHARE_NAME)
 	@echo "$(ANSI_GREEN)Successfully unmounted $(ANSI_RESET)./.$(SHARE_NAME)"

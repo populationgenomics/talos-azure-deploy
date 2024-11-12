@@ -18,10 +18,11 @@ resource "azurerm_container_app_environment" "env" {
   resource_group_name        = azurerm_resource_group.rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
-  infrastructure_resource_group_name = "${var.deployment_name}-capp-rg"
   workload_profile {
     name                  = "Consumption"
     workload_profile_type = "Consumption"
+    maximum_count         = 0
+    minimum_count         = 0
   }
 }
 
@@ -37,6 +38,7 @@ resource "azurerm_container_app_job" "job" {
   resource_group_name          = azurerm_resource_group.rg.name
   container_app_environment_id = azurerm_container_app_environment.env.id
 
+  workload_profile_name      = "Consumption"
   replica_timeout_in_seconds = 1800
   replica_retry_limit        = 1
   manual_trigger_config {
