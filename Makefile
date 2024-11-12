@@ -12,9 +12,9 @@ ANSI_BLUE := \033[0;36m
 ANSI_RESET := \033[0;0m
 .DEFAULT_GOAL := update-images
 
-# update-vep-job-image
+# update-vep-job
 .PHONY: update-images
-update-images: update-talos-job-image
+update-images: update-talos-job
 	@echo
 	@echo "$(ANSI_GREEN)====== Done! ======$(ANSI_RESET)"
 
@@ -46,24 +46,24 @@ acr-login: get-deployment-vars
 
 #################
 ### TALOS JOB
-.PHONY: push-talos-job-image
-push-talos-job-image: get-td-version get-deployment-vars acr-login
+.PHONY: push-talos-job
+push-talos-job: get-td-version get-deployment-vars acr-login
 	@echo "$(ANSI_GREY)Pushing latest talos-run docker image...$(ANSI_RESET)"
 	docker push $(DEPLOYMENT_ACR).azurecr.io/talos-run:$(TD_VERSION)
 	docker push $(DEPLOYMENT_ACR).azurecr.io/talos-run:latest
 
-.PHONY: build-talos-job-image
-build-talos-job-image: get-td-version get-deployment-vars
+.PHONY: build-talos-job
+build-talos-job: get-td-version get-deployment-vars
 	@echo "$(ANSI_GREY)Building latest talos-run docker image...$(ANSI_RESET)"
-	docker build -t talos-run:$(TD_VERSION) -f talos-run.Dockerfile .
+	docker build -t talos-run:$(TD_VERSION) -f docker/talos-run.Dockerfile .
 	docker tag talos-run:$(TD_VERSION) $(DEPLOYMENT_ACR).azurecr.io/talos-run:$(TD_VERSION)
 	docker tag talos-run:$(TD_VERSION) $(DEPLOYMENT_ACR).azurecr.io/talos-run:latest
 
-.PHONY: update-talos-job-image
-update-talos-job-image: build-talos-job push-talos-job-image
+.PHONY: update-talos-job
+update-talos-job: build-talos-job push-talos-job
 
 .PHONY: run-talos-job
-run-talos-job: update-talos-job-image get-deployment-vars get-td-version
+run-talos-job: update-talos-job get-deployment-vars get-td-version
 	docker run -it --mount type=bind,source=/home/azureuser/talos-deploy/.reference,target=/talos-deploy/reference --mount type=bind,source=/home/azureuser/talos-deploy/.data,target=/talos-deploy/data talos-run:$(TD_VERSION) /bin/bash /scripts/talos_runner.sh
 
 	# az containerapp job start --name "talos-run" --resource-group $(DEPLOYMENT_RG) \
@@ -74,16 +74,16 @@ run-talos-job: update-talos-job-image get-deployment-vars get-td-version
 
 #################
 ### VEP JOB
-.PHONY: push-vep-job-image
-push-vep-job-image: get-td-version get-deployment-vars acr-login
+.PHONY: push-vep-job
+push-vep-job: get-td-version get-deployment-vars acr-login
 	@echo "$(ANSI_GREY)Pushing latest vep-run docker image...$(ANSI_RESET)"
 	docker push $(DEPLOYMENT_ACR).azurecr.io/vep-run:$(VEP_VERSION)
 	docker push $(DEPLOYMENT_ACR).azurecr.io/vep-run:latest
 
-.PHONY: build-vep-job-image
-build-vep-job-image: build-vep-base-image get-td-version get-deployment-vars
+.PHONY: build-vep-job
+build-vep-job: build-vep-base-image get-td-version get-deployment-vars
 	@echo "$(ANSI_GREY)Building latest vep-run docker image...$(ANSI_RESET)"
-	docker build -t vep-run:$(TD_VERSION) -f vep-run.Dockerfile .
+	docker build -t vep-run:$(TD_VERSION) -f docker/vep-run.Dockerfile .
 	docker tag vep-run:$(TD_VERSION) $(DEPLOYMENT_ACR).azurecr.io/vep-run:$(TD_VERSION)
 	docker tag vep-run:$(TD_VERSION) $(DEPLOYMENT_ACR).azurecr.io/vep-run:latest
 
@@ -92,11 +92,11 @@ build-vep-base-image:
 	@echo "$(ANSI_GREY)Building latest VEP base docker image...$(ANSI_RESET)"
 	docker build -t vep:release_110.1 -f images/images/vep_110/Dockerfile images/images/vep_110
 
-.PHONY: update-vep-job-image
-update-vep-job-image: build-vep-job-image push-vep-job-image
+.PHONY: update-vep-job
+update-vep-job: build-vep-job push-vep-job
 
 .PHONY: run-vep-job
-run-vep-job: update-vep-job-image get-deployment-vars get-td-version
+run-vep-job: update-vep-job get-deployment-vars get-td-version
 	docker run -it --mount type=bind,source=/home/azureuser/talos-deploy/.reference,target=/talos-deploy/reference --mount type=bind,source=/home/azureuser/talos-deploy/.data,target=/talos-deploy/data vep-run:$(TD_VERSION) /bin/bash scripts/vep_runner.sh
 
 	# az containerapp job start --name "vep-run" --resource-group $(DEPLOYMENT_RG) \
@@ -106,7 +106,7 @@ run-vep-job: update-vep-job-image get-deployment-vars get-td-version
 	# 	--args "/talos-deploy/data/input/input.vcf.bgz"
 
 .PHONY: run-references-job
-run-references-job: update-talos-job-image get-deployment-vars get-td-version
+run-references-job: update-talos-job get-deployment-vars get-td-version
 	docker run -it --mount type=bind,source=/home/azureuser/talos-deploy/.reference2,target=/talos-deploy/reference talos-run:$(TD_VERSION) /bin/bash /scripts/references_runner.sh
 
 	# az containerapp job start --name "references-run" --resource-group $(DEPLOYMENT_RG) \
