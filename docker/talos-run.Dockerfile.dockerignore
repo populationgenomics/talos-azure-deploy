@@ -1,0 +1,7 @@
+.data/
+.reference/
+.vscode/
+deploy/
+docker/
+example_data/
+images/

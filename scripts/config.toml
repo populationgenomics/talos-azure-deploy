@@ -55,8 +55,8 @@ seqr_instance = "https://seqr.populationgenomics.org.au"
 #seqr_lookup = "gs://cpg-broad-rgp-test-analysis/reanalysis/seqr_processed.json"
 
 [RunHailFiltering.cores]
-sv = 8
-small_variants = 8
+sv = 2
+small_variants = 2
 
 [RunHailFiltering.storage]
 sv = 10

@@ -1,7 +1,6 @@
 # Typical usages of make for this project are listed below.
 # 	make				    : see `update-images`
 #	make update-images	    : update the Talos and VEP run images in the Azure Container Registry
-#   make run-pipeline       : run the pipeline in the Azure Container Env using the latest Talos and VEP job images (DATASET_ID=<id>)
 #   make run-talos-job      : run a talos_runner job in the Azure Container Env using the latest Talos job image (DATASET_ID=<id>)
 #   make run-vep-job        : run a vep_runner job in the Azure Container Env using the latest VEP job image (DATASET_ID=<id>)
 #   make mount-all          : mount the data and reference shares locally
@@ -21,13 +20,6 @@ SHARE_NAME ?= data
 .PHONY: update-images
 update-images: update-talos-job update-vep-job
 	@echo
-	@echo "$(ANSI_GREEN)====== Done! ======$(ANSI_RESET)"
-
-.PHONY: run-pipeline
-run-pipeline: 
-	$(MAKE) run-vep-job DATASET_ID=$(DATASET_ID)
-	$(MAKE) run-talos-job DATASET_ID=$(DATASET_ID)
-
 	@echo "$(ANSI_GREEN)====== Done! ======$(ANSI_RESET)"
 
 #################
@@ -55,7 +47,7 @@ get-td-version:
 
 .PHONY: acr-login
 acr-login: get-deployment-vars
-	az acr login --name $(DEPLOYMENT_ACR)
+	az acr login --name $(DEPLOYMENT_ACR) --subscription $(DEPLOYMENT_SUBSCRIPTION)
 
 #################
 ### TALOS JOB
@@ -75,18 +67,16 @@ build-talos-job: get-td-version get-deployment-vars
 .PHONY: update-talos-job
 update-talos-job: build-talos-job push-talos-job
 
-# TODO - investigate why the make targets for the build stages aren't caching appropriately.
 .PHONY: run-talos-job
 run-talos-job: update-talos-job get-deployment-vars get-td-version
-	docker run -it --mount type=bind,source=/home/azureuser/talos-deploy/.reference,target=/reference \
-		--mount type=bind,source=/home/azureuser/talos-deploy/.data,target=/data talos-run:$(TD_VERSION) \
-		/bin/bash /scripts/talos_runner.sh $(DATASET_ID)
+#	docker run -it --mount type=bind,source=/home/azureuser/talos-deploy/.reference,target=/reference \
+#		--mount type=bind,source=/home/azureuser/talos-deploy/.data,target=/data talos-run:$(TD_VERSION) \
+#		/bin/bash /scripts/talos_runner.sh $(DATASET_ID)
 
-#	# az containerapp job start --name "job-runner" --resource-group $(DEPLOYMENT_RG) \
-#	# 	--image $(DEPLOYMENT_ACR).azurecr.io/talos-run:$(TD_VERSION) \
-#	# 	--subscription $(DEPLOYMENT_SUBSCRIPTION) \
-#	# 	--command "/bin/bash" "/scripts/talos_runner.sh" \
-#	# 	--args "/data/output/annotated.vcf.bgz" "/data/input/pedigree.ped"
+	az containerapp job start --name "job-runner" --resource-group $(DEPLOYMENT_RG) \
+		--image $(DEPLOYMENT_ACR).azurecr.io/talos-run:$(TD_VERSION) --cpu 2.0 --memory 4.0Gi\
+		--subscription $(DEPLOYMENT_SUBSCRIPTION) \
+		--command "/bin/bash" "/scripts/talos_runner.sh" $(DATASET_ID)
 
 #################
 ### VEP JOB
@@ -124,17 +114,17 @@ run-vep-job: update-vep-job get-deployment-vars get-td-version
 #################
 ### MISC JOBS
 
-.PHONY: run-references-job
-run-references-job: update-talos-job get-deployment-vars get-td-version
+.PHONY: run-reference-job
+run-reference-job: update-talos-job get-deployment-vars get-td-version
 	az containerapp job start --name "job-runner" --resource-group $(DEPLOYMENT_RG) \
 		--image $(DEPLOYMENT_ACR).azurecr.io/vep-run:$(TD_VERSION) \
 		--subscription $(DEPLOYMENT_SUBSCRIPTION) \
-		--command "/bin/bash" "/scripts/references_runner.sh"
+		--command "/bin/bash" "/scripts/reference_runner.sh"
 
-.PHONY: run-references-job-local
-run-references-job-local: get-deployment-vars get-td-version
+.PHONY: run-reference-job-local
+run-reference-job-local: get-deployment-vars get-td-version
 	docker run -it --mount type=bind,source=$(shell pwd)/.reference,target=/reference \
-		vep-run:$(TD_VERSION) /bin/bash /scripts/references_runner.sh
+		vep-run:$(TD_VERSION) /bin/bash /scripts/reference_runner.sh
 
 .PHONY: run-test-job
 run-test-job: get-td-version get-deployment-vars
@@ -143,6 +133,10 @@ run-test-job: get-td-version get-deployment-vars
 		--subscription $(DEPLOYMENT_SUBSCRIPTION) \
 		--command "/bin/bash" "/scripts/test_runner.sh" \
 		--args "hello-world"
+
+.PHONY: get-job-status
+get-job-status: get-deployment-vars
+	az containerapp job execution show -n job-runner -g $(DEPLOYMENT_RG) --job-execution-name $(JOB_EXECUTION_NAME) --subscription $(DEPLOYMENT_SUBSCRIPTION) -otable
 
 #################
 ### MOUNTS
@@ -166,7 +160,7 @@ else
 endif
 	mkdir ./.$(SHARE_NAME)
 	@echo "$(ANSI_GREY)Fetching storage key and mounting $(SHARE_NAME) share locally...$(ANSI_RESET)"
-	STORAGE_KEY=$$(az storage account keys list --resource-group $(DEPLOYMENT_RG) --account-name $(DEPLOYMENT_STORAGE) --query "[0].value" --output tsv | tr -d '"') && \
+	STORAGE_KEY=$$(az storage account keys list --resource-group $(DEPLOYMENT_RG) --account-name $(DEPLOYMENT_STORAGE) --subscription $(DEPLOYMENT_SUBSCRIPTION) --query "[0].value" --output tsv | tr -d '"') && \
 	sudo mount -t cifs //$(DEPLOYMENT_STORAGE).file.core.windows.net/$(SHARE_NAME) ./.$(SHARE_NAME) \
 		-o vers=3.1.1,username=$(DEPLOYMENT_STORAGE),password=$$STORAGE_KEY,dir_mode=0777,file_mode=0777
 	@echo "$(ANSI_GREEN)Successfully mounted $(ANSI_RESET)./.$(SHARE_NAME)"

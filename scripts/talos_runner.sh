@@ -82,6 +82,8 @@ FindGeneSymbolMap \
   --input "$PANELAPP_RESULTS" \
   --output "$GENE_MAP"
 
+# TODO handle the case where phenotype is not provided.
+
 # HPOFlagging
 PHENO_ANNOTATED_RESULTS="${OUTPUT_DIR}/pheno_annotated_report.json"
 PHENO_FILTERED_RESULTS="${OUTPUT_DIR}/pheno_filtered_report.json"

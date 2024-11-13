@@ -45,7 +45,7 @@ az account show --query id -o tsv
 
 ## Deploy the Azure resources needed to run Talos
 
-The `deploy` directory contains the terraform configuration files necessary to deploy the Azure resources needed to run the Talos pipeline. TODO
+The `deploy` directory contains the terraform configuration files necessary to deploy the Azure resources needed to run the Talos pipeline. TODO: add instructions for other users as to how to make their own deployments.
 
 ## Build and push the docker images used by the pipeline
 
@@ -58,9 +58,10 @@ make update-images
 Note: if you want to verify that the images were built and pushed to the ACR successfully, you can run the following command to double-check:
 
 ```bash
-# TODO, need DEPLOYMENT_NAME env var
 az acr repository list --name ${DEPLOYMENT_NAME}acr --output table
 ```
+
+Where `DEPLOYMENT_NAME` is specific to your configuration and defined in `deploy/deployment.tf`.
 
 This should return the following result
 
@@ -86,7 +87,7 @@ To prepare the reference data locally, run the following commands:
 ```bash
 # Locally mount the Azure Blob Storage File Shares.
 make mount-all
-make run-references-job-local
+make run-reference-job-local
 ```
 
 ### Prepare reference data using an Azure Container App
@@ -94,7 +95,7 @@ make run-references-job-local
 The Azure infrastructure you just deployed provides a convenient mechanism for executing containerized jobs in the cloud. To prepare the reference data using an Azure Container App, run the following commands:
 
 ```bash
-make run-references-job
+make run-reference-job
 ```
 
 ## Prepare the input data needed by the pipeline
@@ -128,7 +129,7 @@ Where `${DATASET_ID}` is a unique identifier for the dataset you are analyzing.
 
 We have provided an example dataset in the `data` directory of this repository. This dataset is a small VCF file containing a few genetic variants, a corresponding pedigree file, and an optional phenopacket file.
 
-!! TODO, automatically populate share on creation. Currently from a clean repo mount the drives and run `mkdir -p .data/example && cp example_data/* .data/example/input`
+TODO, automatically populate share on creation. Currently from a clean repo mount the drives and run `mkdir -p .data/example && cp example_data/* .data/example/input`
 
 
 If you would like to use this example dataset, it has automatically been copied to the data file share with the `${DATASET_ID}` of `example`. No additional operations are required, however you can view these data with the following commands:
@@ -159,10 +160,23 @@ cp path/to/your/data.json .data/${DATASET_ID}/phenopackets.json
 Once you have the reference data and input data staged in the Azure Blob Storage account, you can run the Talos pipeline using the following commands:
 
 ```bash
-make run-pipeline DATASET_ID=<your_dataset_id>
+make run-vep-job DATASET_ID=<your_dataset_id>
 ```
 
-This will run VEP and the core Talos pipeline on the input data you provided. On the example dataset this should take about 10 minutes to run. On larger datasets, the execution time will scale approximately linearly with the number of variants in the input VCF.
+This command will result in a json blob output, from which you can extract the job execution name, it should be prefixed with `job-runner` and look like `job-runner-abcdef`. You then
+use another make target to check the status of this job:
+
+```bash
+make get-job-status JOB_EXECUTION_NAME=<JOB_EXECUTION_NAME>
+```
+
+When the job status is returned as complete, then you can run the second step in the pipeline.
+
+```bash
+make run-talos-job DATASET_ID=<your_dataset_id>
+```
+
+These steps will run VEP and the core Talos pipeline on the input data you provided. On the example dataset this should take about 10 minutes to run. On larger datasets, the execution time will scale approximately linearly with the number of variants in the input VCF.
 
 After successful execution, the output of the pipeline will be staged in the Azure Blob Storage account associated with this deployment and can be viewed in your development environment by running the following commands:
 
