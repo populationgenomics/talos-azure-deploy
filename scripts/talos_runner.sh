@@ -2,8 +2,14 @@
 
 set -e
 
+# Accept as an argument the dataset id, default to "example"
+DATASET_ID=${1:-example}
+
+# TODO, validate the presence of the input VCF file and index.
+DATASET_DIR=$DATA_DIR/$DATASET_ID
+
 # Set the path to use for an output directory.
-OUTPUT_DIR="${DATA_DIR}/output/talos_$(date +%F)"
+OUTPUT_DIR="${DATASET_DIR}/output/talos_$(date +%F)"
 mkdir -p $OUTPUT_DIR
 
 # Pass the config TOML file, and export as an environment variable as required by talos.
@@ -12,18 +18,18 @@ export TALOS_CONFIG="$CONFIG_FILE"
 
 # Pass the Pedigree and optional phenopackets files to the script
 # Assume these are named as below. This should be parametrized.
-PED_FILE="${DATA_DIR}/input/pedigree.ped"
-PHENOPACKET_FILE="${DATA_DIR}/input/phenopackets.json"
+PED_FILE="${DATASET_DIR}/input/pedigree.ped"
+PHENOPACKET_FILE="${DATASET_DIR}/input/phenopackets.json"
 
 # Pass the annotated VCF to the script.
-SMALL_VARIANT_INPUT_VCF="${DATA_DIR}/output/vep/annotated.vcf.bgz"
+SMALL_VARIANT_INPUT_VCF="${DATASET_DIR}/output/vep/annotated.vcf.bgz"
 
 # Pass the reference data to the script.
-CLINVAR_DECISIONS="/talos-deploy/reference/talos/clinvarbitration/24-11/clinvar_decisions.ht"
-CLINVAR_PM5="/talos-deploy/reference/talos/clinvarbitration/24-11/clinvar_pm5.ht"
-HPO_OBO="/talos-deploy/reference/talos/HPO.obo"
-GEN2PHEN=/talos-deploy/reference/talos/genes_to_phenotype.txt
-PHENIO_DB=/talos-deploy/reference/talos/phenio.db
+CLINVAR_DECISIONS="${REF_DIR}/talos/clinvarbitration/24-11/clinvar_decisions.ht"
+CLINVAR_PM5="${REF_DIR}/talos/clinvarbitration/24-11/clinvar_pm5.ht"
+HPO_OBO="${REF_DIR}/talos/HPO.obo"
+GEN2PHEN="${REF_DIR}/talos/genes_to_phenotype.txt"
+PHENIO_DB="${REF_DIR}/talos/phenio.db"
 
 ### Run individual Talos modules.
 

@@ -32,13 +32,18 @@ if [ -z "$DATA_DIR" ]; then
     exit 1
 fi
 
-# For now, assume the name of the input data in DATA_DIR. Should be parametrized.
-# Also assume that the output file is named annotated.vcf.bgz. Should be parametrized.
-INPUT_VCF=$DATA_DIR/input/small_variants.vcf.bgz
+# Accept as an argument the dataset id, default to "example"
+DATASET_ID=${1:-example}
 
-mkdir -p $DATA_DIR/output/vep
+# TODO, validate the presence of the input VCF file and index.
+DATASET_DIR=$DATA_DIR/$DATASET_ID
 
-vep --format vcf --vcf --compress_output bgzip -o $DATA_DIR/output/vep/annotated.vcf.bgz \
+# Assume that the output file is named annotated.vcf.bgz. Should be parametrized.
+INPUT_VCF=$DATASET_DIR/input/small_variants.vcf.bgz
+
+mkdir -p $DATASET_DIR/output/vep
+
+vep --format vcf --vcf --compress_output bgzip -o $DATASET_DIR/output/vep/annotated.vcf.bgz \
     -i $INPUT_VCF \
     --everything \
     --mane_select \

@@ -16,7 +16,7 @@ COPY talos/requirements*.txt talos/README.md talos/setup.py .
 COPY talos/src src/
 RUN pip install .[cpg]
 
-ENV REF_DIR=/talos-deploy/reference
-ENV DATA_DIR=/talos-deploy/data
+ENV REF_DIR=/reference
+ENV DATA_DIR=/data
 
 COPY scripts scripts/

@@ -16,13 +16,13 @@ fi
 ### VEP dependencies
 
 VEP_REF_DIR=$REF_DIR/vep
-mkdir $VEP_REF_DIR
+mkdir -p $VEP_REF_DIR
 
 # VEP 110 cache - ~20 GiB
 VEP_CACHE_DIR=$VEP_REF_DIR/vep_cache
-mkdir $VEP_CACHE_DIR
+mkdir -p $VEP_CACHE_DIR
 VEP_CACHE_DL=/tmp/homo_sapiens_vep_110_GRCh38.tar.gz
-mkdir /tmp
+mkdir -p /tmp
 wget https://ftp.ensembl.org/pub/release-110/variation/indexed_vep_cache/homo_sapiens_vep_110_GRCh38.tar.gz -O $VEP_CACHE_DL
 tar -xzf $VEP_CACHE_DL -C $VEP_CACHE_DIR
 rm $VEP_CACHE_DL
@@ -56,7 +56,7 @@ wget -qO- https://personal.broadinstitute.org/konradk/loftee_data/GRCh38/loftee.
 ### Talos dependencies
 
 TALOS_REF_DIR=$REF_DIR/talos
-mkdir $TALOS_REF_DIR
+mkdir -p $TALOS_REF_DIR
 
 # HPO.obo file
 HPO_FILE=$TALOS_REF_DIR/HPO.obo
