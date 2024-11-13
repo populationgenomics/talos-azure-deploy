@@ -115,7 +115,7 @@ run-vep-job: update-vep-job get-deployment-vars get-td-version
 ### MISC JOBS
 
 .PHONY: run-reference-job
-run-reference-job: update-talos-job get-deployment-vars get-td-version
+run-reference-job: update-vep-job get-deployment-vars get-td-version
 	az containerapp job start --name "job-runner" --resource-group $(DEPLOYMENT_RG) \
 		--image $(DEPLOYMENT_ACR).azurecr.io/vep-run:$(TD_VERSION) \
 		--subscription $(DEPLOYMENT_SUBSCRIPTION) \
