@@ -12,7 +12,7 @@
 # - REF_DIR: the directory where reference data is located. This includes the VEP cache, FASTA reference, and other files
 #     required by VEP.
 
-set -e
+set -ex
 
 # Verify that the environment variable VEP_DIR_PLUGINS is set, if not exit early.
 if [ -z "$VEP_DIR_PLUGINS" ]; then

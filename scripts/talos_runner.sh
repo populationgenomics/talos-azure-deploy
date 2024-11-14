@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 
 # Accept as an argument the dataset id, default to "example"
 DATASET_ID=${1:-example}

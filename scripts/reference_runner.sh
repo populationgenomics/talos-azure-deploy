@@ -2,7 +2,7 @@
 
 # This script manages gathering and preprocessing the reference dependencies for VEP and for Talos.
 
-set -e
+set -ex
 
 # Verify that the environment variable REF_DIR is set, if not exit early.
 if [ -z "$REF_DIR" ]; then
