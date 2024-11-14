@@ -1,49 +1,194 @@
 # talos-deploy
 
-This repository provides a streamlined reference implementation for users to see an example of how to implement the [Talos](https://github.com/populationgenomics/talos) pipeline for genetic variant prioritization and reanalysis. Further, it is intended to facilitate quick evaluation of talos on small datasets, either synthetic sample data or user-provided data. Information on each of these use cases is provided below.
+This repository provides a streamlined reference implementation for users to see an example of how to implement the [Talos](https://github.com/populationgenomics/talos) pipeline for genetic variant prioritization and reanalysis in Microsoft Azure. Further, it is intended to facilitate quick evaluation of talos on small datasets, either synthetic sample data or user-provided data. Information on each of these use cases is provided below.
 
-## I want to try Talos on some sample data
+This is not intended to be an exhaustive guide as to the myriad ways to implement the Talos pipeline in Azure, but rather a starting point for users to get up and running quickly.
 
-A pre-built docker iamge that can be used to run talos end to end is available "this ACR"
+There are two basic use cases supported by this repository:
+1. I want to try running Talos on some sample data
+2. I want to run Talos on my own data
 
-### Pre-requisites
+Even if you eventually want to run Talos on your own data, it's recommended to start with the sample data use case to get all the pre-requisites set up and to get a feel for how this Azure infrastructure is set up to run the Talos pipeline.
 
-### Running Talos on sample data
+Loosely speaking, the order of operations to getting Talos running in your own Azure environment involves the following steps:
 
-We have provided a sample VCF, Ped file, and Phenopacket file in "this public storage account".
+1. Get your local deployment environment and Azure environment set up
+2. Deploy the Azure resources needed to run Talos
+3. Build and push the docker images used by the pipeline
+4. Prepare the reference data needed by the pipeline
+5. Prepare the input data needed by the pipeline
+6. Run the pipeline and review the results
 
-1. Configure your run specification yaml
-2. Deploy the runtime azure resource
-3. Kick off the run
-4. Profit
+Wherever possible, we've tried to automate these steps using makefiles and terraform scripts.
 
-### Explanation of what's happening
+## Get your local deployment environment and Azure environment set up
 
-## I want to run Talos on my own data
+### Development environment pre-requisites
 
-### Pre-requisites
+This README has been tested on an Azure VM and WSL2 instance, both of which were running Ubuntu 22.04 LTS. In order to deploy this implementation of the Talos pipeline, you will need the following tools installed on your development environment:
 
-Same as above, plus your data need to be in cloud storage somewhere
+- [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+- [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli)
+- [docker](https://docs.docker.com/engine/install/ubuntu/)
+- [make](https://www.gnu.org/software/make/)
 
-requires make, terraform, az, jq, docker
+### Cloud pre-requisites
 
-#### Input data requirements
+In order to deploy the Talos pipeline in Azure, you will need access to an Azure subscription where you have the necessary permissions to create resources.
 
-See if these are articulated in the talos README.
+You will want to make note of the tenant ID and subscription ID for the Azure subscription you will be using. You can find these values by running the following commands in the Azure CLI after logging in:
 
-VCF must conform to VCF specification XYZ.
-Must be normalized and have multi-allelic variants split out into individual rows.
+```bash
+az account show --query tenantId -o tsv
+az account show --query id -o tsv
+```
 
-Pedigree file conforms to standard .PED file format. 
+## Deploy the Azure resources needed to run Talos
 
-[Optional] Phenopackets spec ... TODO
+The `deploy` directory contains the terraform configuration files necessary to deploy the Azure resources needed to run the Talos pipeline. TODO: add instructions for other users as to how to make their own deployments.
+
+## Build and push the docker images used by the pipeline
+
+The Talos pipeline uses two docker images to run the primary pipeline stages (VEP annotation of input data and the Talos prioritization pipeline itself). These images are built using the Dockerfiles in the `docker` directory. The `Makefile` in the root of this repository provides a target to build and push these images to the Azure Container Registry (ACR) that you deployed above.
+
+```bash
+make update-images
+```
+
+Note: if you want to verify that the images were built and pushed to the ACR successfully, you can run the following command to double-check:
+
+```bash
+az acr repository list --name ${DEPLOYMENT_NAME}acr --output table
+```
+
+Where `DEPLOYMENT_NAME` is specific to your configuration and defined in `deploy/deployment.tf`.
+
+This should return the following result
+
+```text
+Result
+---------
+talos-run
+vep-run
+```
+
+## Preparing reference data
+
+The Talos pipeline -- and the VEP annotation pipeline (which talos depends on) -- require reference data to run. These reference data includes the VEP cache, VEP plugin data, Talos' preprocessed ClinVar inputs, etc. They are all pulled from sources across the internet and copying them into the environment where Talos will run can be slow. To optimize this, and to minimize load on those 3rd party servers, we perform a one-time copy of the required reference data to an Azure Blob Storage account in the same region where we intend to run Talos.
+
+There are currently two ways to prepare the reference data, locally, or using an Azure Container App to do the work for you.
+
+### Preparing reference data locally
+
+Note: to perform this step on your local development machine, you will need at least 150 GiB of free disk space on the same mount point where you have the `talos-deploy` repository cloned.
+
+To prepare the reference data locally, run the following commands:
+
+```bash
+# Locally mount the Azure Blob Storage File Shares.
+make mount-all
+make run-reference-job-local
+```
+
+### Prepare reference data using an Azure Container App
+
+The Azure infrastructure you just deployed provides a convenient mechanism for executing containerized jobs in the cloud. To prepare the reference data using an Azure Container App, run the following commands:
+
+```bash
+make run-reference-job
+```
+
+## Prepare the input data needed by the pipeline
+
+The Talos pipeline has three required data inputs and one optional data input:
+- A block-compressed VCF file containing the genetic variants to be analyzed
+- The corresponding index file for the VCF file
+- A pedigree file in PLINK format
+- [Optional] A Phenopacket file containing the phenotypic data for the individuals in the pedigree
+
+The VCF and index file need to be block-compressed using bgzip and indexed using tabix. The pipeline is optimized for joint-called VCFs, but single sample inputs will work as well. The VCF must conform to the VCF specification and be normalized. Multi-allelic variants should be split out into individual rows.
+
+The pedigree file should be in the [PLINK format](https://www.cog-genomics.org/plink2/formats#fam). It should be named with the extension `.ped`, as opposed to the `.fam` extension.
+
+If provided, the phenopacket file should conform to the [Phenopackets schema](https://phenopacket-schema.readthedocs.io/en/latest/index.html).
+
+To keep things as simple as possible, at this time, the input data files need to be staged in the Azure Blob Storage account that you deployed above with a specific naming scheme, which is as follows:
+
+```text
+.data
+└── ${DATASET_ID}
+    ├── small_variants.vcf.gz
+    ├── small_variants.vcf.gz.tbi
+    ├── pedigree.ped
+    └── phenopacket.json
+```
+
+Where `${DATASET_ID}` is a unique identifier for the dataset you are analyzing.
+
+### Using the provided example dataset
+
+We have provided an example dataset in the `data` directory of this repository. This dataset is a small VCF file containing a few genetic variants, a corresponding pedigree file, and an optional phenopacket file.
+
+TODO, automatically populate share on creation. Currently from a clean repo mount the drives and run `mkdir -p .data/example && cp example_data/* .data/example/input`
 
 
+If you would like to use this example dataset, it has automatically been copied to the data file share with the `${DATASET_ID}` of `example`. No additional operations are required, however you can view these data with the following commands:
 
-## I am an advanced Talos user and I want to modify pipeline behavior
+```bash
+make mount-all
+ls .data/example
+```
 
-## I am an infrastructure administrator and I want to host my own talos-deploy Docker image
+### Using your own data
+
+If, instead, you wish you use your own data, you should first localize the input data to your development environment using whatever tools are appropriate given the storage location of the source data. We strongly recommend [azcopy](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10) for transfers within Azure. Once localized, you can use the following commands to stage the data in the Azure Blob Storage account:
+
+```bash
+DATASET_ID="my_data" # or whatever you want to call this project
+make mount-all
+cp path/to/your/data.vcf.gz .data/${DATASET_ID}/input/small_variants.vcf.gz
+cp path/to/your/data.vcf.gz.tbi .data/${DATASET_ID}/input/small_variants.vcf.gz.tbi
+cp path/to/your/data.ped .data/${DATASET_ID}/input/pedigree.ped
+# Optional
+cp path/to/your/data.json .data/${DATASET_ID}/phenopackets.json
+```
+
+** Note the specific naming conventions for the input files. At this time, the pipeline expects these files to be named as described above.**
+
+## Run the pipeline and review the results
+
+Once you have the reference data and input data staged in the Azure Blob Storage account, you can run the Talos pipeline using the following commands:
+
+```bash
+make run-vep-job DATASET_ID=<your_dataset_id>
+```
+
+This command will result in a json blob output, from which you can extract the job execution name, it should be prefixed with `job-runner` and look like `job-runner-abcdef`. You then
+use another make target to check the status of this job:
+
+```bash
+make get-job-status JOB_EXECUTION_NAME=<JOB_EXECUTION_NAME>
+```
+
+When the job status is returned as complete, then you can run the second step in the pipeline.
+
+```bash
+make run-talos-job DATASET_ID=<your_dataset_id>
+```
+
+These steps will run VEP and the core Talos pipeline on the input data you provided. On the example dataset this should take about 10 minutes to run. On larger datasets, the execution time will scale approximately linearly with the number of variants in the input VCF.
+
+After successful execution, the output of the pipeline will be staged in the Azure Blob Storage account associated with this deployment and can be viewed in your development environment by running the following commands:
+
+```bash
+make mount-all
+ls .data/<your_dataset_id>/output/talos_<datestamp>
+```
+
+The output of the pipeline will contain a number of files that are discussed in the parent Talos repository, but the primary outputs of interest are `pheno_annotated_report.json` and `talos_output.html`. Note the latter will not be present if no variants were prioritized by the pipeline (TODO mention this to Matt).
 
 ## Troubleshooting
+
+TODO
 
 1. Incorrect RBAC privileges to access data

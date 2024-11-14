@@ -39,7 +39,7 @@ resource "azurerm_container_app_job" "job" {
   container_app_environment_id = azurerm_container_app_environment.env.id
 
   workload_profile_name      = "Consumption"
-  replica_timeout_in_seconds = 1800
+  replica_timeout_in_seconds = 3600
   replica_retry_limit        = 1
   manual_trigger_config {
     parallelism              = 1

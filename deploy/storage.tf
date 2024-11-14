@@ -27,7 +27,7 @@ resource "azurerm_container_app_environment_storage" "reference_storage" {
   account_name                 = azurerm_storage_account.sa.name
   access_key                   = azurerm_storage_account.sa.primary_access_key
   share_name                   = azurerm_storage_share.reference.name
-  access_mode                  = "ReadOnly"
+  access_mode                  = "ReadWrite"
 }
 
 resource "azurerm_container_app_environment_storage" "data_storage" {

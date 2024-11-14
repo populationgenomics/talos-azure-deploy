@@ -2,4 +2,5 @@ deploy/
 images/
 docker/
 talos/
-.*
+.data/
+.reference/
