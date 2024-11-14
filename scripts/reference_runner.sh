@@ -21,8 +21,7 @@ mkdir -p $VEP_REF_DIR
 # VEP 110 cache - ~20 GiB
 VEP_CACHE_DIR=$VEP_REF_DIR/vep_cache
 mkdir -p $VEP_CACHE_DIR
-VEP_CACHE_DL=/tmp/homo_sapiens_vep_110_GRCh38.tar.gz
-mkdir -p /tmp
+VEP_CACHE_DL=$VEP_REF_DIR/homo_sapiens_vep_110_GRCh38.tar.gz
 wget https://ftp.ensembl.org/pub/release-110/variation/indexed_vep_cache/homo_sapiens_vep_110_GRCh38.tar.gz -O $VEP_CACHE_DL --no-verbose
 tar -xzf $VEP_CACHE_DL -C $VEP_CACHE_DIR
 rm $VEP_CACHE_DL
