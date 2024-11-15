@@ -39,12 +39,12 @@ DATASET_ID=${1:-example}
 DATASET_DIR=$DATA_DIR/$DATASET_ID
 
 # Assume that the output file is named annotated.vcf.bgz. Should be parametrized.
-INPUT_VCF=$DATASET_DIR/input/small_variants.vcf.bgz
+INPUT_VCF=$DATASET_DIR/small_variants.vcf.bgz
 
-mkdir -p $DATASET_DIR/output/vep
+mkdir -p $DATASET_DIR/vep
 
-vep --format vcf --vcf --compress_output bgzip -o $DATASET_DIR/output/vep/annotated.vcf.bgz \
-    -i $INPUT_VCF \
+vep --format vcf --vcf --compress_output bgzip -o $DATASET_DIR/vep/annotated.vcf.bgz \
+    -i $INPUT_VCF --force_overwrite \
     --everything \
     --mane_select \
     --allele_number \

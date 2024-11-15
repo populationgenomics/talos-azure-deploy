@@ -9,7 +9,7 @@ DATASET_ID=${1:-example}
 DATASET_DIR=$DATA_DIR/$DATASET_ID
 
 # Set the path to use for an output directory.
-OUTPUT_DIR="${DATASET_DIR}/output/talos_$(date +%F)"
+OUTPUT_DIR="${DATASET_DIR}/talos_$(date +%F)"
 mkdir -p $OUTPUT_DIR
 
 # Pass the config TOML file, and export as an environment variable as required by talos.
@@ -18,11 +18,11 @@ export TALOS_CONFIG="$CONFIG_FILE"
 
 # Pass the Pedigree and optional phenopackets files to the script
 # Assume these are named as below. This should be parametrized.
-PED_FILE="${DATASET_DIR}/input/pedigree.ped"
-PHENOPACKET_FILE="${DATASET_DIR}/input/phenopackets.json"
+PED_FILE="${DATASET_DIR}/pedigree.ped"
+PHENOPACKET_FILE="${DATASET_DIR}/phenopackets.json"
 
 # Pass the annotated VCF to the script.
-SMALL_VARIANT_INPUT_VCF="${DATASET_DIR}/output/vep/annotated.vcf.bgz"
+SMALL_VARIANT_INPUT_VCF="${DATASET_DIR}/vep/annotated.vcf.bgz"
 
 # Pass the reference data to the script.
 CLINVAR_DECISIONS="${REF_DIR}/talos/clinvarbitration/24-11/clinvar_decisions.ht"
@@ -65,7 +65,7 @@ RunHailFiltering \
   --output "$FILTERED_SMALL_VARIANTS" \
   --clinvar "$CLINVAR_DECISIONS" \
   --pm5 "$CLINVAR_PM5" \
-  --checkpoint /tmp/small_var_checkpoint.mt
+  --checkpoint small_var_checkpoint.mt
 
 # Run the MOI validation.
 MOI_RESULTS="${OUTPUT_DIR}/moi_results.json"
