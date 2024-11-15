@@ -22,9 +22,8 @@ terraform {
 
 provider "azurerm" {
   features {}
-  tenant_id           = var.tenant_id
-  subscription_id     = var.subscription_id
-  storage_use_azuread = true
+  tenant_id       = var.tenant_id
+  subscription_id = var.subscription_id
   # Note this assumes that necessary resource providers have already been registered in the target subscription.
   # If not, the errors can be misleading (e.g. "API version 2019-XX-XX was not found for Microsoft.Network")
   resource_provider_registrations = "none"
