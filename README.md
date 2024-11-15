@@ -85,8 +85,8 @@ Note: to perform this step on your local development machine, you will need at l
 To prepare the reference data locally, run the following commands:
 
 ```bash
-# Locally mount the Azure Blob Storage File Shares.
-make mount-all
+# Locally mount the "reference" Azure Blob Storage File Share at `.reference`.
+make mount-share SHARE_NAME=reference
 make run-reference-job-local
 ```
 
@@ -112,10 +112,10 @@ The pedigree file should be in the [PLINK format](https://www.cog-genomics.org/p
 
 If provided, the phenopacket file should conform to the [Phenopackets schema](https://phenopacket-schema.readthedocs.io/en/latest/index.html).
 
-To keep things as simple as possible, at this time, the input data files need to be staged in the Azure Blob Storage account that you deployed above with a specific naming scheme, which is as follows:
+The input data files need to be staged in the Azure Blob Storage "data" File Share deployed above as part of the Talos Azure resources in order to be accessible to the Talos job at runtime. The dataset is expected to follow a a specific naming scheme, which is as follows:
 
 ```text
-.data
+data
 └── ${DATASET_ID}
     ├── small_variants.vcf.gz
     ├── small_variants.vcf.gz.tbi
@@ -123,29 +123,26 @@ To keep things as simple as possible, at this time, the input data files need to
     └── phenopacket.json
 ```
 
-Where `${DATASET_ID}` is a unique identifier for the dataset you are analyzing.
+where `${DATASET_ID}` is a unique identifier for the dataset you are analyzing. To facilitate viewing and preparing data on this file share you can mount it locally at `.data` with the following `make` command:
+
+```bash
+make mount-share SHARE_NAME=data
+```
 
 ### Using the provided example dataset
 
-We have provided an example dataset in the `data` directory of this repository. This dataset is a small VCF file containing a few genetic variants, a corresponding pedigree file, and an optional phenopacket file.
-
-TODO, automatically populate share on creation. Currently from a clean repo mount the drives and run `mkdir -p .data/example && cp example_data/* .data/example/input`
-
-
-If you would like to use this example dataset, it has automatically been copied to the data file share with the `${DATASET_ID}` of `example`. No additional operations are required, however you can view these data with the following commands:
+We have provided an example dataset in the `deploy/example-dataset` directory of this repository. This dataset is a small VCF file containing a few genetic variants, a corresponding pedigree file, and an optional phenopacket file. The infrastructure deploy process has automatically populated it to the "data" file share with a `${DATASET_ID}` of `example-dataset`. You should be able to view these data on the locally-mounted share:
 
 ```bash
-make mount-all
-ls .data/example
+ls .data/example-dataset
 ```
 
 ### Using your own data
 
-If, instead, you wish you use your own data, you should first localize the input data to your development environment using whatever tools are appropriate given the storage location of the source data. We strongly recommend [azcopy](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10) for transfers within Azure. Once localized, you can use the following commands to stage the data in the Azure Blob Storage account:
+If you wish you use your own data, you should first localize the input data to your development environment using whatever tools are appropriate given the storage location of the source data. We strongly recommend [azcopy](https://learn.microsoft.com/en-us/azure/storage/common/storage-use-azcopy-v10) for transfers within Azure. Once localized, you can use the following commands to stage the data to the mounted Azure Blob Storage File Share:
 
 ```bash
 DATASET_ID="my_data" # or whatever you want to call this project
-make mount-all
 cp path/to/your/data.vcf.gz .data/${DATASET_ID}/input/small_variants.vcf.gz
 cp path/to/your/data.vcf.gz.tbi .data/${DATASET_ID}/input/small_variants.vcf.gz.tbi
 cp path/to/your/data.ped .data/${DATASET_ID}/input/pedigree.ped
