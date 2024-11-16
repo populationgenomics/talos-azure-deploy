@@ -100,6 +100,8 @@ make run-reference-job
 
 ## Prepare the input data needed by the pipeline
 
+TODO - update with more flexible naming conventions
+
 The Talos pipeline has three required data inputs and one optional data input:
 - A block-compressed VCF file containing the genetic variants to be analyzed
 - The corresponding index file for the VCF file

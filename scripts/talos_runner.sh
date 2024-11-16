@@ -4,8 +4,6 @@ set -ex
 
 # Accept as an argument the dataset id, default to "example"
 DATASET_ID=${1:-example}
-
-# TODO, validate the presence of the input VCF file and index.
 DATASET_DIR=$DATA_DIR/$DATASET_ID
 
 # Set the path to use for an output directory.
@@ -17,9 +15,42 @@ CONFIG_FILE="/scripts/config.toml"
 export TALOS_CONFIG="$CONFIG_FILE"
 
 # Pass the Pedigree and optional phenopackets files to the script
-# Assume these are named as below. This should be parametrized.
-PED_FILE="${DATASET_DIR}/pedigree.ped"
-PHENOPACKET_FILE="${DATASET_DIR}/phenopackets.json"
+# Assume these are named as below.
+# Find all .ped files in the dataset directory
+PED_FILES=($DATASET_DIR/*.ped)
+
+# Find all .json files in the dataset directory
+JSON_FILES=($DATASET_DIR/*.json)
+
+# Check the number of .ped files found
+if [ ${#PED_FILES[@]} -eq 0 ] || [ "${PED_FILES[0]}" == "$DATASET_DIR/*.ped" ]; then
+    echo "No .ped files found in $DATASET_DIR."
+    PED_ERROR=1
+elif [ ${#PED_FILES[@]} -gt 1 ]; then
+    echo "Multiple .ped files found in $DATASET_DIR."
+    PED_ERROR=1
+else
+    PED_FILE=${PED_FILES[0]}
+fi
+
+# Check the number of .json files found
+if [ ${#JSON_FILES[@]} -eq 0 ] || [ "${JSON_FILES[0]}" == "$DATASET_DIR/*.json" ]; then
+    echo "No .json files found in $DATASET_DIR. Not performing phenotype analysis."
+    # Don't set PHENOPACKET_FILE
+elif [ ${#JSON_FILES[@]} -gt 1 ]; then
+    echo "Multiple .json files found in $DATASET_DIR."
+    JSON_ERROR=1
+else
+    PHENOPACKET_FILE=${JSON_FILES[0]}
+fi
+
+# TODO handle optional phenopacket file
+
+# Exit if there were errors with either .ped or .json files
+if [ -n "$PED_ERROR" ] || [ -n "$JSON_ERROR" ]; then
+    echo "Errors found with input files. Exiting."
+    exit 1
+fi
 
 # Pass the annotated VCF to the script.
 SMALL_VARIANT_INPUT_VCF="${DATASET_DIR}/vep/annotated.vcf.bgz"
@@ -81,8 +112,6 @@ GENE_MAP="${OUTPUT_DIR}/symbol_to_ensg.json"
 FindGeneSymbolMap \
   --input "$PANELAPP_RESULTS" \
   --output "$GENE_MAP"
-
-# TODO handle the case where phenotype is not provided.
 
 # HPOFlagging
 PHENO_ANNOTATED_RESULTS="${OUTPUT_DIR}/pheno_annotated_report.json"

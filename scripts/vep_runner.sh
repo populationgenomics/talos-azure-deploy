@@ -34,12 +34,22 @@ fi
 
 # Accept as an argument the dataset id, default to "example"
 DATASET_ID=${1:-example}
-
-# TODO, validate the presence of the input VCF file and index.
 DATASET_DIR=$DATA_DIR/$DATASET_ID
 
-# Assume that the output file is named annotated.vcf.bgz. Should be parametrized.
-INPUT_VCF=$DATASET_DIR/small_variants.vcf.bgz
+# Find all .bgz files in the dataset directory
+BGZ_FILES=($DATASET_DIR/*.bgz)
+
+# Check the number of .bgz files found
+if [ ${#BGZ_FILES[@]} -eq 0 ] || [ "${BGZ_FILES[0]}" == "$DATASET_DIR/*.bgz" ]; then
+    echo "No .bgz files found in $DATASET_DIR. Exiting."
+    exit 1
+elif [ ${#BGZ_FILES[@]} -gt 1 ]; then
+    echo "Multiple .bgz files found in $DATASET_DIR. Exiting."
+    exit 1
+fi
+
+# Use the single .bgz file found
+INPUT_VCF=${BGZ_FILES[0]}
 
 mkdir -p $DATASET_DIR/vep
 
