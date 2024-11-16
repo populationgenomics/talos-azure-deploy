@@ -24,6 +24,13 @@ resource "azurerm_container_app_environment" "env" {
     maximum_count         = 0
     minimum_count         = 0
   }
+
+  workload_profile {
+    name                  = "Dedicated_D8"
+    workload_profile_type = "D8"
+    maximum_count         = 4
+    minimum_count         = 0
+  }
 }
 
 resource "azurerm_user_assigned_identity" "umi" {
@@ -38,8 +45,9 @@ resource "azurerm_container_app_job" "job" {
   resource_group_name          = azurerm_resource_group.rg.name
   container_app_environment_id = azurerm_container_app_environment.env.id
 
-  workload_profile_name      = "Consumption"
-  replica_timeout_in_seconds = 3600
+  workload_profile_name      = "Dedicated_D8"
+  # One day
+  replica_timeout_in_seconds = 86400
   replica_retry_limit        = 1
   manual_trigger_config {
     parallelism              = 1
@@ -73,8 +81,8 @@ resource "azurerm_container_app_job" "job" {
       # e.g. image  = "${azurerm_container_registry.acr.login_server}/talos-run:latest"
       image  = "mcr.microsoft.com/k8se/quickstart-jobs:latest"
       name   = "job-runner"
-      cpu    = 0.5
-      memory = "1Gi"
+      cpu    = 2.0
+      memory = "4.0Gi"
       volume_mounts {
         name = "reference-volume"
         path = "/reference"

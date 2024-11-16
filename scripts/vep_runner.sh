@@ -45,6 +45,7 @@ mkdir -p $DATASET_DIR/vep
 
 vep --format vcf --vcf --compress_output bgzip -o $DATASET_DIR/vep/annotated.vcf.bgz \
     -i $INPUT_VCF --force_overwrite \
+    --fork 8 \
     --everything \
     --mane_select \
     --allele_number \
