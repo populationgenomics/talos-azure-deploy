@@ -21,6 +21,18 @@ resource "azurerm_storage_share" "data" {
   quota                = 500
 }
 
+resource "azurerm_storage_share_directory" "example_dataset" {
+  name             = "example-dataset"
+  storage_share_id = azurerm_storage_share.data.id
+}
+resource "azurerm_storage_share_file" "example_files" {
+  for_each         = toset(["pedigree.ped", "phenopackets.json", "small_variants.vcf.bgz", "small_variants.vcf.bgz.tbi"])
+  storage_share_id = azurerm_storage_share.data.id
+  source           = "example-dataset/${each.value}"
+  path             = azurerm_storage_share_directory.example_dataset.name
+  name             = each.value
+}
+
 resource "azurerm_container_app_environment_storage" "reference_storage" {
   name                         = "reference-storage"
   container_app_environment_id = azurerm_container_app_environment.env.id
