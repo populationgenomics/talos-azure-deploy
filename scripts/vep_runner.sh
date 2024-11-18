@@ -72,6 +72,8 @@ vep --fork 8 \
     --plugin AlphaMissense,file=$REF_DIR/vep/AlphaMissense_hg38.tsv.gz \
     --plugin LoF,gerp_bigwig:$REF_DIR/vep/gerp_conservation_scores.homo_sapiens.GRCh38.bw,human_ancestor_fa:$REF_DIR/vep/human_ancestor.fa.gz,conservation_file:$REF_DIR/vep/loftee.sql,loftee_path:$VEP_DIR_PLUGINS
 
+# Use of the FASTA file seems incompatible with multi-threading, potentially related to threa-safe expectations of plugins.
+#    --fa $REF_DIR/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
 
 
 
