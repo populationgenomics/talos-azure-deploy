@@ -144,14 +144,14 @@ If you wish you use your own data, you should first localize the input data to y
 
 ```bash
 DATASET_ID="my_data" # or whatever you want to call this project
-cp path/to/your/data.vcf.gz .data/${DATASET_ID}/input/small_variants.vcf.gz
-cp path/to/your/data.vcf.gz.tbi .data/${DATASET_ID}/input/small_variants.vcf.gz.tbi
-cp path/to/your/data.ped .data/${DATASET_ID}/input/pedigree.ped
+cp path/to/your/data.vcf.gz .data/${DATASET_ID}/small_variants.vcf.gz
+cp path/to/your/data.vcf.gz.tbi .data/${DATASET_ID}/small_variants.vcf.gz.tbi
+cp path/to/your/data.ped .data/${DATASET_ID}/pedigree.ped
 # Optional
 cp path/to/your/data.json .data/${DATASET_ID}/phenopackets.json
 ```
 
-** Note the specific naming conventions for the input files. At this time, the pipeline expects these files to be named as described above.**
+** Note that while the specific names of the VCF, pedigree, and phenopackets files can be whatever you want them to be, the extensions should be gz, tbi, ped, and json. Further, there should only be one file of each of these types in the `{$DATASET_ID}` folder.**
 
 ## Run the pipeline and review the results
 
@@ -180,7 +180,7 @@ After successful execution, the output of the pipeline will be staged in the Azu
 
 ```bash
 make mount-all
-ls .data/<your_dataset_id>/output/talos_<datestamp>
+ls .data/<your_dataset_id>/talos_<datestamp>
 ```
 
 The output of the pipeline will contain a number of files that are discussed in the parent Talos repository, but the primary outputs of interest are `pheno_annotated_report.json` and `talos_output.html`. Note the latter will not be present if no variants were prioritized by the pipeline.
