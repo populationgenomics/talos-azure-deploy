@@ -31,11 +31,13 @@ AM_FILE=$VEP_REF_DIR/AlphaMissense_hg38.tsv.gz
 wget "https://storage.googleapis.com/dm_alphamissense/AlphaMissense_hg38.tsv.gz" -O $AM_FILE --no-verbose
 tabix -s 1 -b 2 -e 2 -f -S 1 $AM_FILE
 
-# Currently not being used, this appears not to be block gzipped and VEP complains about that.
-# Since this is only used as a performance optimization it's not mandatory, but worth digging into.
+# # Not currently including the FASTA reference. It appears that use of the FASTA in conjunction with multi-threading is causing issues.
 # # Fasta reference - ~1GiB
-# FASTA_FILE=$VEP_REF_DIR/Homo_sapiens.GRCh38.dna.toplevel.fa.gz
-# wget -O $FASTA_FILE "ftp://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.toplevel.fa.gz"
+# UNZIPPED_FASTA_FILE=$VEP_REF_DIR/Homo_sapiens.GRCh38.dna.primary_assembly.fa
+# FASTA_FILE=$UNZIPPED_FASTA_FILE.gz
+# wget -O $FASTA_FILE "https://ftp.ensembl.org/pub/release-110/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz" --no-verbose
+# gzip -d $FASTA_FILE
+# bgzip $UNZIPPED_FASTA_FILE #--threads 8
 
 # Loftee/LoF references
 # Human ancestor file - ~1GiB
