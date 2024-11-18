@@ -1,1 +1,2 @@
 .terraform*
+config.auto.tfvars

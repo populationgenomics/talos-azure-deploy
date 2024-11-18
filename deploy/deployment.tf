@@ -31,7 +31,6 @@ provider "azurerm" {
   use_cli = true
 }
 
-# These are the variables `deploy-init.sh` automatically provides based on the deployment environment.
 variable "deployment_name" {
   description = "Master deployment name, suitable as a prefix to derive various unique resource names."
   type        = string
@@ -44,23 +43,22 @@ variable "deployment_name" {
     ])
     error_message = "Variable deployment_name must be 8-16 characters lowercase alphanumeric."
   }
-  default = "talosmsr01"
 }
+
 variable "region" {
   description = "Azure region in which to deploy resources (e.g. 'eastus')."
   type        = string
   nullable    = false
-  default     = "eastus2"
 }
+
 variable "tenant_id" {
   description = "Tenant in which to deploy resources."
   type        = string
   nullable    = false
-  default     = "b7e69ef3-619e-4cb7-a4e5-80110816cdf7"
 }
+
 variable "subscription_id" {
   description = "Subscription in which to deploy resources."
   type        = string
   nullable    = false
-  default     = "12ab51c6-da79-4a99-8dec-3d2decc97343"
 }
