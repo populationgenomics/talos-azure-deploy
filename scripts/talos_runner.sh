@@ -44,7 +44,7 @@ else
     PHENOPACKET_FILE=${JSON_FILES[0]}
 fi
 
-# TODO handle optional phenopacket file
+# TODO handle optional phenopacket file once Talos supports it better.
 
 # Exit if there were errors with either .ped or .json files
 if [ -n "$PED_ERROR" ] || [ -n "$JSON_ERROR" ]; then

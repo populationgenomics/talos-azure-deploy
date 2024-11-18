@@ -100,29 +100,28 @@ make run-reference-job
 
 ## Prepare the input data needed by the pipeline
 
-TODO - update with more flexible naming conventions
-
 The Talos pipeline has three required data inputs and one optional data input:
 - A block-compressed VCF file containing the genetic variants to be analyzed
 - The corresponding index file for the VCF file
 - A pedigree file in PLINK format
-- [Optional] A Phenopacket file containing the phenotypic data for the individuals in the pedigree
+- [Optional] A JSON-formatted phenopacket file containing the phenotypic data for the individuals in the pedigree
 
-The VCF and index file need to be block-compressed using bgzip and indexed using tabix. The pipeline is optimized for joint-called VCFs, but single sample inputs will work as well. The VCF must conform to the VCF specification and be normalized. Multi-allelic variants should be split out into individual rows.
+The VCF and index file need to be block-compressed using bgzip and indexed using tabix. The VCF must conform to the VCF specification and be normalized; multi-allelic variants should be split out into individual rows.
 
 The pedigree file should be in the [PLINK format](https://www.cog-genomics.org/plink2/formats#fam). It should be named with the extension `.ped`, as opposed to the `.fam` extension.
 
-If provided, the phenopacket file should conform to the [Phenopackets schema](https://phenopacket-schema.readthedocs.io/en/latest/index.html).
+If provided, the phenopacket file should conform to the [Phenopackets schema](https://phenopacket-schema.readthedocs.io/en/latest/index.html) and be in the JSON file format.
 
-The input data files need to be staged in the Azure Blob Storage "data" File Share deployed above as part of the Talos Azure resources in order to be accessible to the Talos job at runtime. The dataset is expected to follow a a specific naming scheme, which is as follows:
+The input data files need to be staged in the Azure Blob Storage "data" File Share deployed above as part of the Talos Azure resources in order to be accessible to the Talos job at runtime. The required input files should be in a 
+subfolder in this File Share named with a unique "DATASET_ID". The files can be named whatever you like, however there can only be one of each VCF, index, pedigree, and phenopacket file in each dataset folder.
 
 ```text
 data
 └── ${DATASET_ID}
-    ├── small_variants.vcf.gz
-    ├── small_variants.vcf.gz.tbi
-    ├── pedigree.ped
-    └── phenopacket.json
+    ├── my_variants.vcf.gz
+    ├── my_variants.vcf.gz.tbi
+    ├── my_pedigree.ped
+    └── my_phenopacket.json
 ```
 
 where `${DATASET_ID}` is a unique identifier for the dataset you are analyzing. To facilitate viewing and preparing data on this file share you can mount it locally at `.data` with the following `make` command:
@@ -184,10 +183,4 @@ make mount-all
 ls .data/<your_dataset_id>/output/talos_<datestamp>
 ```
 
-The output of the pipeline will contain a number of files that are discussed in the parent Talos repository, but the primary outputs of interest are `pheno_annotated_report.json` and `talos_output.html`. Note the latter will not be present if no variants were prioritized by the pipeline (TODO mention this to Matt).
-
-## Troubleshooting
-
-TODO
-
-1. Incorrect RBAC privileges to access data
+The output of the pipeline will contain a number of files that are discussed in the parent Talos repository, but the primary outputs of interest are `pheno_annotated_report.json` and `talos_output.html`. Note the latter will not be present if no variants were prioritized by the pipeline.
