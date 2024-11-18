@@ -53,18 +53,22 @@ INPUT_VCF=${BGZ_FILES[0]}
 
 mkdir -p $DATASET_DIR/vep
 
-vep --format vcf --vcf --compress_output bgzip -o $DATASET_DIR/vep/annotated.vcf.bgz \
-    -i $INPUT_VCF --force_overwrite \
-    --fork 8 \
-    --everything \
-    --mane_select \
-    --allele_number \
-    --minimal \
+vep --fork 8 \
+    --format vcf \
+    -i $INPUT_VCF --vcf \
+    --compress_output bgzip \
+    --no_stats \
+    --dir_cache $REF_DIR/vep/vep_cache \
     --species homo_sapiens \
     --cache \
     --offline \
     --assembly GRCh38 \
-    --dir_cache $REF_DIR/vep/vep_cache \
+    -o $DATASET_DIR/vep/annotated.vcf.bgz \
+    --force_overwrite \
+    --protein \
+    --af_gnomadg \
+    --af_gnomade \
+    --mane_select \
     --plugin AlphaMissense,file=$REF_DIR/vep/AlphaMissense_hg38.tsv.gz \
     --plugin LoF,gerp_bigwig:$REF_DIR/vep/gerp_conservation_scores.homo_sapiens.GRCh38.bw,human_ancestor_fa:$REF_DIR/vep/human_ancestor.fa.gz,conservation_file:$REF_DIR/vep/loftee.sql,loftee_path:$VEP_DIR_PLUGINS
 
