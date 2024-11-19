@@ -7,17 +7,9 @@ terraform {
     subscription_id      = "a0e0e744-06b2-4fd3-9230-ebf8ef1ac4c8"
     storage_account_name = "bmcdeployments"
     container_name       = "talosmsr0"
-    use_azuread_auth     = true
     key                  = "deploy.tfstate"
+    use_azuread_auth     = true
   }
-  # Include the following azurerm block in required_providers
-  # along with any other providers you need.
-  # required_providers {
-  #   azurerm = {
-  #     source  = "hashicorp/azurerm"
-  #     version = "..."
-  #   }
-  # }
 }
 
 provider "azurerm" {
