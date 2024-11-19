@@ -34,29 +34,46 @@ fi
 
 # Accept as an argument the dataset id, default to "example"
 DATASET_ID=${1:-example}
-
-# TODO, validate the presence of the input VCF file and index.
 DATASET_DIR=$DATA_DIR/$DATASET_ID
 
-# Assume that the output file is named annotated.vcf.bgz. Should be parametrized.
-INPUT_VCF=$DATASET_DIR/input/small_variants.vcf.bgz
+# Find all .bgz files in the dataset directory
+BGZ_FILES=($DATASET_DIR/*.bgz)
 
-mkdir -p $DATASET_DIR/output/vep
+# Check the number of .bgz files found
+if [ ${#BGZ_FILES[@]} -eq 0 ] || [ "${BGZ_FILES[0]}" == "$DATASET_DIR/*.bgz" ]; then
+    echo "No .bgz files found in $DATASET_DIR. Exiting."
+    exit 1
+elif [ ${#BGZ_FILES[@]} -gt 1 ]; then
+    echo "Multiple .bgz files found in $DATASET_DIR. Exiting."
+    exit 1
+fi
 
-vep --format vcf --vcf --compress_output bgzip -o $DATASET_DIR/output/vep/annotated.vcf.bgz \
-    -i $INPUT_VCF \
-    --everything \
-    --mane_select \
-    --allele_number \
-    --minimal \
+# Use the single .bgz file found
+INPUT_VCF=${BGZ_FILES[0]}
+
+mkdir -p $DATASET_DIR/vep
+
+vep --fork 8 \
+    --format vcf \
+    -i $INPUT_VCF --vcf \
+    --compress_output bgzip \
+    --no_stats \
+    --dir_cache $REF_DIR/vep/vep_cache \
     --species homo_sapiens \
     --cache \
     --offline \
     --assembly GRCh38 \
-    --dir_cache $REF_DIR/vep/vep_cache \
+    -o $DATASET_DIR/vep/annotated.vcf.bgz \
+    --force_overwrite \
+    --protein \
+    --af_gnomadg \
+    --af_gnomade \
+    --mane_select \
     --plugin AlphaMissense,file=$REF_DIR/vep/AlphaMissense_hg38.tsv.gz \
     --plugin LoF,gerp_bigwig:$REF_DIR/vep/gerp_conservation_scores.homo_sapiens.GRCh38.bw,human_ancestor_fa:$REF_DIR/vep/human_ancestor.fa.gz,conservation_file:$REF_DIR/vep/loftee.sql,loftee_path:$VEP_DIR_PLUGINS
 
+# Use of the FASTA file seems incompatible with multi-threading, potentially related to threa-safe expectations of plugins.
+#    --fa $REF_DIR/vep/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
 
 
 

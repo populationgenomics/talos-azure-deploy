@@ -88,7 +88,7 @@ update-talos-job: build-talos-job push-talos-job
 .PHONY: run-talos-job
 run-talos-job: update-talos-job get-deployment-vars get-td-version
 	az containerapp job start -n "job-runner" -g $(DEPLOYMENT_RG) --subscription $(DEPLOYMENT_SUBSCRIPTION) \
-		--image $(DEPLOYMENT_ACR)/talos-run:$(TD_VERSION) --cpu 2.0 --memory 4.0Gi \
+		--image $(DEPLOYMENT_ACR)/talos-run:$(TD_VERSION) --cpu 8.0 --memory 32.0Gi \
 		--command "/bin/bash" "/scripts/talos_runner.sh" $(DATASET_ID)
 
 #################
@@ -117,7 +117,8 @@ update-vep-job: build-vep-job push-vep-job
 .PHONY: run-vep-job
 run-vep-job: update-vep-job get-deployment-vars get-td-version
 	az containerapp job start -n "job-runner" -g $(DEPLOYMENT_RG) --subscription $(DEPLOYMENT_SUBSCRIPTION) \
-		--image $(DEPLOYMENT_ACR)/vep-run:$(TD_VERSION) --command "/bin/bash" "/scripts/vep_runner.sh" $(DATASET_ID)
+		--image $(DEPLOYMENT_ACR)/vep-run:$(TD_VERSION) --cpu 8.0 --memory 32.0Gi \
+		--command "/bin/bash" "/scripts/vep_runner.sh" $(DATASET_ID)
 
 #################
 ### REFERENCE JOB

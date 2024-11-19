@@ -13,7 +13,7 @@ sv1 = "Predicted LOF SV"
 
 [GeneratePanelData]
 default_panel = 137
-obo_file = "gs://cpg-common-test/references/aip/hpo_terms.obo"
+#obo_file = "gs://cpg-common-test/references/aip/hpo_terms.obo"
 panelapp = "https://panelapp.agha.umccr.org/api/v1/panels"
 require_pheno_match = [ "FLG", "GJB2", "F2", "F5",]
 forbidden_genes = []
@@ -46,8 +46,8 @@ solved_cases = []
 [HPOFlagging]
 semantic_match = true
 min_similarity = 14.0
-phenio_db = "gs://cpg-common-test/references/aip/phenotype.db"
-gene_to_phenotype = "gs://cpg-common-test/references/aip/genes_to_phenotype.txt"
+#phenio_db = "gs://cpg-common-test/references/aip/phenotype.db"
+#gene_to_phenotype = "gs://cpg-common-test/references/aip/genes_to_phenotype.txt"
 
 [CreateTalosHTML]
 seqr_project = "R0050_broad_rgp"
@@ -55,8 +55,8 @@ seqr_instance = "https://seqr.populationgenomics.org.au"
 #seqr_lookup = "gs://cpg-broad-rgp-test-analysis/reanalysis/seqr_processed.json"
 
 [RunHailFiltering.cores]
-sv = 2
-small_variants = 2
+sv = 8
+small_variants = 8
 
 [RunHailFiltering.storage]
 sv = 10

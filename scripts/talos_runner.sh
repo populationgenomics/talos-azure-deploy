@@ -4,12 +4,10 @@ set -ex
 
 # Accept as an argument the dataset id, default to "example"
 DATASET_ID=${1:-example}
-
-# TODO, validate the presence of the input VCF file and index.
 DATASET_DIR=$DATA_DIR/$DATASET_ID
 
 # Set the path to use for an output directory.
-OUTPUT_DIR="${DATASET_DIR}/output/talos_$(date +%F)"
+OUTPUT_DIR="${DATASET_DIR}/talos_$(date +%F)"
 mkdir -p $OUTPUT_DIR
 
 # Pass the config TOML file, and export as an environment variable as required by talos.
@@ -17,12 +15,45 @@ CONFIG_FILE="/scripts/config.toml"
 export TALOS_CONFIG="$CONFIG_FILE"
 
 # Pass the Pedigree and optional phenopackets files to the script
-# Assume these are named as below. This should be parametrized.
-PED_FILE="${DATASET_DIR}/input/pedigree.ped"
-PHENOPACKET_FILE="${DATASET_DIR}/input/phenopackets.json"
+# Assume these are named as below.
+# Find all .ped files in the dataset directory
+PED_FILES=($DATASET_DIR/*.ped)
+
+# Find all .json files in the dataset directory
+JSON_FILES=($DATASET_DIR/*.json)
+
+# Check the number of .ped files found
+if [ ${#PED_FILES[@]} -eq 0 ] || [ "${PED_FILES[0]}" == "$DATASET_DIR/*.ped" ]; then
+    echo "No .ped files found in $DATASET_DIR."
+    PED_ERROR=1
+elif [ ${#PED_FILES[@]} -gt 1 ]; then
+    echo "Multiple .ped files found in $DATASET_DIR."
+    PED_ERROR=1
+else
+    PED_FILE=${PED_FILES[0]}
+fi
+
+# Check the number of .json files found
+if [ ${#JSON_FILES[@]} -eq 0 ] || [ "${JSON_FILES[0]}" == "$DATASET_DIR/*.json" ]; then
+    echo "No .json files found in $DATASET_DIR. Not performing phenotype analysis."
+    # Don't set PHENOPACKET_FILE
+elif [ ${#JSON_FILES[@]} -gt 1 ]; then
+    echo "Multiple .json files found in $DATASET_DIR."
+    JSON_ERROR=1
+else
+    PHENOPACKET_FILE=${JSON_FILES[0]}
+fi
+
+# TODO handle optional phenopacket file once Talos supports it better.
+
+# Exit if there were errors with either .ped or .json files
+if [ -n "$PED_ERROR" ] || [ -n "$JSON_ERROR" ]; then
+    echo "Errors found with input files. Exiting."
+    exit 1
+fi
 
 # Pass the annotated VCF to the script.
-SMALL_VARIANT_INPUT_VCF="${DATASET_DIR}/output/vep/annotated.vcf.bgz"
+SMALL_VARIANT_INPUT_VCF="${DATASET_DIR}/vep/annotated.vcf.bgz"
 
 # Pass the reference data to the script.
 CLINVAR_DECISIONS="${REF_DIR}/talos/clinvarbitration/24-11/clinvar_decisions.ht"
@@ -65,7 +96,7 @@ RunHailFiltering \
   --output "$FILTERED_SMALL_VARIANTS" \
   --clinvar "$CLINVAR_DECISIONS" \
   --pm5 "$CLINVAR_PM5" \
-  --checkpoint /tmp/small_var_checkpoint.mt
+  --checkpoint small_var_checkpoint.mt
 
 # Run the MOI validation.
 MOI_RESULTS="${OUTPUT_DIR}/moi_results.json"
@@ -81,8 +112,6 @@ GENE_MAP="${OUTPUT_DIR}/symbol_to_ensg.json"
 FindGeneSymbolMap \
   --input "$PANELAPP_RESULTS" \
   --output "$GENE_MAP"
-
-# TODO handle the case where phenotype is not provided.
 
 # HPOFlagging
 PHENO_ANNOTATED_RESULTS="${OUTPUT_DIR}/pheno_annotated_report.json"
