@@ -21,8 +21,13 @@ update-images: update-talos-job update-vep-job
 	@echo
 	@echo "$(ANSI_GREEN)====== Done! ======$(ANSI_RESET)"
 
+.PHONY: list-images
+list-images: get-deployment-vars
+	@echo "$(ANSI_GREY)Listing images in $(DEPLOYMENT_ACR)...$(ANSI_RESET)"
+	az acr repository list --name $(DEPLOYMENT_ACR) --subscription $(DEPLOYMENT_SUBSCRIPTION) --output table
+
 #################
-### UTILS
+### UTILITIES
 .PHONY: get-deployment-vars
 get-deployment-vars:
 ifndef DEPLOYMENT_NAME
@@ -35,6 +40,15 @@ endif
 	$(eval DEPLOYMENT_RG := $(DEPLOYMENT_NAME)-rg)
 	$(eval DEPLOYMENT_STORAGE := $(DEPLOYMENT_NAME)sa)
 	$(eval DEPLOYMENT_ACR := $(DEPLOYMENT_NAME)acr.azurecr.io)
+
+# Write deployment variables to a TFVARS file for use in Terraform operations.
+deploy-config: get-deployment-vars deploy/config.auto.tfvars
+deploy/config.auto.tfvars:
+	@echo "tenant_id = \"$(DEPLOYMENT_TENANT)\"" > deploy/config.auto.tfvars
+	@echo "subscription_id = \"$(DEPLOYMENT_SUBSCRIPTION)\"" >> deploy/config.auto.tfvars
+	@echo "deployment_name = \"$(DEPLOYMENT_NAME)\"" >> deploy/config.auto.tfvars
+	@echo "region = \"$(DEPLOYMENT_REGION)\"" >> deploy/config.auto.tfvars
+	@echo "$(ANSI_GREEN)Deployment variables written to deploy/config.auto.tfvars$(ANSI_RESET)"
 
 # Get the latest Talos version from the bumpversion config file in the submodule.
 # Use that as the version for talos-deploy.

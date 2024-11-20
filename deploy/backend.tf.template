@@ -1,0 +1,11 @@
+terraform {
+  required_version = ">=1.9.5"
+  backend "azurerm" {
+    tenant_id            = "<subscription_id>"
+    subscription_id      = "<tenant_id>"
+    storage_account_name = "<storage_account_name>"
+    container_name       = "<container_name>"
+    key                  = "deploy.tfstate"
+    use_azuread_auth     = true
+  }
+}

@@ -1,1 +1,4 @@
 .terraform*
+config.auto.tfvars
+deployment.env
+backend.tf
