@@ -1,29 +1,16 @@
 # talos-deploy
 
-This repository provides a streamlined reference implementation for users to see an example of how to implement the [Talos](https://github.com/populationgenomics/talos) pipeline for genetic variant prioritization and reanalysis in Microsoft Azure. Further, it is intended to facilitate quick evaluation of talos on small datasets, either synthetic sample data or user-provided data. Information on each of these use cases is provided below.
+This repository provides a streamlined reference implementation for users to see an example of how to implement the [Talos](https://github.com/populationgenomics/talos) pipeline for genetic variant prioritization and reanalysis in Microsoft Azure. It is intended to facilitate quick evaluation of talos on small datasets, either synthetic sample data or user-provided data. Information on each of these use cases is provided below.
 
-This is not intended to be an exhaustive guide as to the myriad ways to implement the Talos pipeline in Azure, but rather a starting point for users to get up and running quickly.
-
-There are two basic use cases supported by this repository:
+This is not intended to be an exhaustive guide as to the myriad ways to implement the Talos pipeline in Azure, rather a starting point for users to get up and running quickly. There are two basic use cases supported by this repository:
 1. I want to try running Talos on some sample data
 2. I want to run Talos on my own data
 
-Even if you eventually want to run Talos on your own data, it's recommended to start with the sample data use case to get all the pre-requisites set up and to get a feel for how this Azure infrastructure is set up to run the Talos pipeline.
+Even if you eventually want to run Talos on your own data, it's recommended to start with the sample data use case to get all the prerequisites set up and to get a feel for how Azure resources are configured to run the Talos pipeline. This README will walk you through how to create the necessary Azure infrastructure, how to set up your references and data, and how to run a Talos job against the data.
 
-Loosely speaking, the order of operations to getting Talos running in your own Azure environment involves the following steps:
+## Local environment
 
-1. Get your local deployment environment and Azure environment set up
-2. Deploy the Azure resources needed to run Talos
-3. Build and push the docker images used by the pipeline
-4. Prepare the reference data needed by the pipeline
-5. Prepare the input data needed by the pipeline
-6. Run the pipeline and review the results
-
-Wherever possible, we've tried to automate these steps using makefiles and terraform scripts.
-
-## Get your local deployment environment and Azure environment set up
-
-### Development environment pre-requisites
+### Dev environment prerequisites
 
 This README has been tested on an Azure VM and WSL2 instance, both of which were running Ubuntu 22.04 LTS. In order to deploy this implementation of the Talos pipeline, you will need the following tools installed on your development environment:
 
@@ -32,7 +19,9 @@ This README has been tested on an Azure VM and WSL2 instance, both of which were
 - [docker](https://docs.docker.com/engine/install/ubuntu/)
 - [make](https://www.gnu.org/software/make/)
 
-### Cloud pre-requisites
+Most of the job build/run tasks are implemented as targets in the `Makefile` at the root of this repository - all `make` commands should be run from this root. You will need `sudo` permissions to run the file share `mount` targets.
+
+### Cloud prerequisites
 
 In order to deploy the Talos pipeline in Azure, you will need access to an Azure subscription where you have the necessary permissions to create resources.
 
@@ -43,27 +32,54 @@ az account show --query tenantId -o tsv
 az account show --query id -o tsv
 ```
 
-## Deploy the Azure resources needed to run Talos
+## Azure infrastructure
 
-The `deploy` directory contains the terraform configuration files necessary to deploy the Azure resources needed to run the Talos pipeline. TODO: add instructions for other users as to how to make their own deployments.
+The `deploy` directory contains template and configuration files for deploying the required Azure pipeline resources with Terraform.  To create a new deployment, first fill in the `deploy/deployment.env.template` file with the necessary values and rename it to `deploy/deployment.env`. This file will be referenced by various `make` commands to locate your Azure infrastructure.
 
-## Build and push the docker images used by the pipeline
+```bash
+# Tenant and subscription in which to deploy all resources.
+export DEPLOYMENT_TENANT=<TENANT_ID>
+export DEPLOYMENT_SUBSCRIPTION=<SUBSCRIPTION_ID>
+# Master deployment name, used to derive various deployment-specific Azure resource names. To avoid any potential
+# Azure namespace conflicts it should be globally unique across Azure, between 8-16 lowercase characters only.
+export DEPLOYMENT_NAME=<NAME>
+# Azure region (e.g. "eastus").
+export DEPLOYMENT_REGION=<REGION>
+```
 
-The Talos pipeline uses two docker images to run the primary pipeline stages (VEP annotation of input data and the Talos prioritization pipeline itself). These images are built using the Dockerfiles in the `docker` directory. The `Makefile` in the root of this repository provides a target to build and push these images to the Azure Container Registry (ACR) that you deployed above.
+> _**Optionally configuring remote state:**_ By default Terraform will create machine-local `.tfstate` state file upon initializing a new deployment with `terraform init`. To configure this deployment instead for a remote/shared state backend, fill in `deploy/backend.tf.template` with the appropriate values pointing to a container in an Azure Storage Account and rename the file to `deploy/backend.tf`.
+
+Once `deployment.env` is initialized, use `make` to generate your deployment-specific Terraform variables file:
+
+```bash
+# Run from the repo root:
+make deploy-config
+```
+
+This creates a file named `deploy/config.auto.tfvars` with the your deployment configuration that Terraform will read in automatically when run. You can now deploy the Azure resources with:
+
+```bash
+cd deploy
+terraform init
+terraform apply
+```
+
+> Note: `deployment.env` is `.gitignore`'d - other developers collaborating on the same deployment will need their own local copy of this file.
+
+## Docker images
+
+The Talos pipeline uses two docker images to run the primary pipeline stages (VEP annotation of input data and the Talos prioritization pipeline itself). These images are built using the Dockerfiles in the `docker` directory. You can use `make` to build and push these images to the Azure Container Registry (ACR) that you deployed above.
 
 ```bash
 make update-images
 ```
 
-Note: if you want to verify that the images were built and pushed to the ACR successfully, you can run the following command to double-check:
-
+To verify that the images were built and pushed to the ACR successfully, you can run the following command to double-check:
 ```bash
-az acr repository list --name ${DEPLOYMENT_NAME}acr --output table
+make list-images
 ```
 
-Where `DEPLOYMENT_NAME` is specific to your configuration and defined in `deploy/deployment.tf`.
-
-This should return the following result
+This should return the following result:
 
 ```text
 Result
@@ -98,7 +114,7 @@ The Azure infrastructure you just deployed provides a convenient mechanism for e
 make run-reference-job
 ```
 
-## Prepare the input data needed by the pipeline
+## Preparing input data
 
 The Talos pipeline has three required data inputs and one optional data input:
 - A block-compressed VCF file containing the genetic variants to be analyzed
@@ -153,7 +169,7 @@ cp path/to/your/data.json .data/${DATASET_ID}/phenopackets.json
 
 ** Note that while the specific names of the VCF, pedigree, and phenopackets files can be whatever you want them to be, the extensions should be gz, tbi, ped, and json. Further, there should only be one file of each of these types in the `{$DATASET_ID}` folder.**
 
-## Run the pipeline and review the results
+## Running jobs
 
 Once you have the reference data and input data staged in the Azure Blob Storage account, you can run the Talos pipeline using the following commands:
 
@@ -179,7 +195,7 @@ These steps will run VEP and the core Talos pipeline on the input data you provi
 After successful execution, the output of the pipeline will be staged in the Azure Blob Storage account associated with this deployment and can be viewed in your development environment by running the following commands:
 
 ```bash
-make mount-all
+make mount-share # if .data not already mounted
 ls .data/<your_dataset_id>/talos_<datestamp>
 ```
 

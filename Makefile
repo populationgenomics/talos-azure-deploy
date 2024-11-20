@@ -21,8 +21,13 @@ update-images: update-talos-job update-vep-job
 	@echo
 	@echo "$(ANSI_GREEN)====== Done! ======$(ANSI_RESET)"
 
+.PHONY: list-images
+list-images: get-deployment-vars
+	@echo "$(ANSI_GREY)Listing images in $(DEPLOYMENT_ACR)...$(ANSI_RESET)"
+	az acr repository list --name $(DEPLOYMENT_ACR) --subscription $(DEPLOYMENT_SUBSCRIPTION) --output table
+
 #################
-### UTILS
+### UTILITIES
 .PHONY: get-deployment-vars
 get-deployment-vars:
 ifndef DEPLOYMENT_NAME
