@@ -52,7 +52,7 @@ export DEPLOYMENT_REGION=<REGION>
 Once `deployment.env` is initialized, use `make` to generate your deployment-specific Terraform variables file:
 
 ```bash
-# Run from the repo root:
+# All make commands should be run from the repo root
 make deploy-config
 ```
 
@@ -90,7 +90,7 @@ vep-run
 
 ## Preparing reference data
 
-The Talos pipeline -- and the VEP annotation pipeline (which talos depends on) -- require reference data to run. These reference data includes the VEP cache, VEP plugin data, Talos' preprocessed ClinVar inputs, etc. They are all pulled from sources across the internet and copying them into the environment where Talos will run can be slow. To optimize this, and to minimize load on those 3rd party servers, we perform a one-time copy of the required reference data to an Azure Blob Storage account in the same region where we intend to run Talos.
+The Talos pipeline -- and the VEP annotation pipeline (which talos depends on) -- require reference data to run. These reference data include the VEP cache, VEP plugin data, Talos' preprocessed ClinVar inputs, etc. They are all pulled from sources across the internet and copying them into the environment where Talos will run can be slow. To optimize this, and to minimize load on those 3rd party servers, we perform a one-time copy of the required reference data to an Azure Blob Storage account in the same region where we intend to run Talos.
 
 There are currently two ways to prepare the reference data, locally, or using an Azure Container App to do the work for you.
 
@@ -106,6 +106,8 @@ make mount-share SHARE_NAME=reference
 make run-reference-job-local
 ```
 
+The duration of this job will vary greatly on the speed of internet connection of your local development environment. If you are developing on an Azure VM, it should take approximately 30 minutes to execute. Slower connections to the internet may take considerably longer.
+
 ### Prepare reference data using an Azure Container App
 
 The Azure infrastructure you just deployed provides a convenient mechanism for executing containerized jobs in the cloud. To prepare the reference data using an Azure Container App, run the following commands:
@@ -114,6 +116,15 @@ The Azure infrastructure you just deployed provides a convenient mechanism for e
 make run-reference-job
 ```
 
+This job should complete in approximately 30 minutes.
+
+You can use another make target to check the status of this job.
+
+```bash
+make get-job-status
+```
+> Note: this command will return the status of all previously executed jobs, with the most recently submitted job at the top.
+
 ## Preparing input data
 
 The Talos pipeline has three required data inputs and one optional data input:
@@ -121,6 +132,8 @@ The Talos pipeline has three required data inputs and one optional data input:
 - The corresponding index file for the VCF file
 - A pedigree file in PLINK format
 - [Optional] A JSON-formatted phenopacket file containing the phenotypic data for the individuals in the pedigree
+
+> Note: the phenopacket file is currently required. Pipeline execution will fail if one is not provided.
 
 The VCF and index file need to be block-compressed using bgzip and indexed using tabix. The VCF must conform to the VCF specification and be normalized; multi-allelic variants should be split out into individual rows.
 
@@ -134,8 +147,8 @@ subfolder in this File Share named with a unique "DATASET_ID". The files can be 
 ```text
 data
 └── ${DATASET_ID}
-    ├── my_variants.vcf.gz
-    ├── my_variants.vcf.gz.tbi
+    ├── my_variants.vcf.bgz
+    ├── my_variants.vcf.bgz.tbi
     ├── my_pedigree.ped
     └── my_phenopacket.json
 ```
@@ -160,14 +173,14 @@ If you wish you use your own data, you should first localize the input data to y
 
 ```bash
 DATASET_ID="my_data" # or whatever you want to call this project
-cp path/to/your/data.vcf.gz .data/${DATASET_ID}/small_variants.vcf.gz
-cp path/to/your/data.vcf.gz.tbi .data/${DATASET_ID}/small_variants.vcf.gz.tbi
+cp path/to/your/data.vcf.bgz .data/${DATASET_ID}/small_variants.vcf.bgz
+cp path/to/your/data.vcf.bgz.tbi .data/${DATASET_ID}/small_variants.vcf.bgz.tbi
 cp path/to/your/data.ped .data/${DATASET_ID}/pedigree.ped
 # Optional
 cp path/to/your/data.json .data/${DATASET_ID}/phenopackets.json
 ```
 
-** Note that while the specific names of the VCF, pedigree, and phenopackets files can be whatever you want them to be, the extensions should be gz, tbi, ped, and json. Further, there should only be one file of each of these types in the `{$DATASET_ID}` folder.**
+** Note that while the specific names of the VCF, pedigree, and phenopackets files can be whatever you want them to be, the extensions should be bgz, tbi, ped, and json. Further, there should only be one file of each of these types in the `{$DATASET_ID}` folder.**
 
 ## Running jobs
 
@@ -181,8 +194,10 @@ This command will result in a json blob output, from which you can extract the j
 use another make target to check the status of this job:
 
 ```bash
-make get-job-status JOB_EXECUTION_NAME=<JOB_EXECUTION_NAME>
+make get-job-status
 ```
+
+This will list the status of all previously executed jobs, with the most recently submitted job listed at the top.
 
 When the job status is returned as complete, then you can run the second step in the pipeline.
 
@@ -200,3 +215,18 @@ ls .data/<your_dataset_id>/talos_<datestamp>
 ```
 
 The output of the pipeline will contain a number of files that are discussed in the parent Talos repository, but the primary outputs of interest are `pheno_annotated_report.json` and `talos_output.html`. Note the latter will not be present if no variants were prioritized by the pipeline.
+
+## Estimating cloud costs
+
+The cost of a single deployment of this infrastructure will vary based on the region in which it is deployed and any other factors that impact subscription-specific pricing. The fixed costs associated with this deployment are the costs of data storage in the associated File Share and the management costs for a dedicated Azure Container Apps workload profile. The variable costs are a direct function of the duration of the pipeline jobs. Current, region-based pricing is available for [Azure Container Apps](https://azure.microsoft.com/en-us/pricing/details/container-apps/) and [Azure Files](https://azure.microsoft.com/en-us/pricing/details/storage/files/).
+
+Running this pipeline on a single VCF that is representative of a mid-sized whole-exome sequencing dataset, in the `eastus` region with retail pricing that is current as of November, 2024, cost estimates are as follows:
+- Azure Container App plan management (fixed): $72 / month
+- Azure files (150 GiB reference and 10 GiB VCF): Approximately $4 / month
+- Reference job: $0.03
+- VEP job: $1.80
+- Talos job: $0.30
+
+Alternative infrastructure and data storage configurations could substantially change estimated costs in either direction, based on whether the implementer wants to optimize for cost, throughput, and/or latency.
+
+
