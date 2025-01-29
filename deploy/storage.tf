@@ -1,7 +1,7 @@
 resource "azurerm_storage_account" "sa" {
   name                     = "${var.deployment_name}sa"
-  resource_group_name      = azurerm_resource_group.rg.name
-  location                 = azurerm_resource_group.rg.location
+  resource_group_name      = data.azurerm_resource_group.rg.name
+  location                 = data.azurerm_resource_group.rg.location
   account_tier             = "Premium"
   account_kind             = "FileStorage"
   account_replication_type = "LRS"

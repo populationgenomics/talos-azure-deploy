@@ -1,21 +1,19 @@
-resource "azurerm_resource_group" "rg" {
+data "azurerm_resource_group" "rg" {
   name     = "${var.deployment_name}-rg"
-  location = var.region
-  lifecycle { ignore_changes = [tags] }
 }
 
 resource "azurerm_log_analytics_workspace" "law" {
   name                = "${var.deployment_name}law"
-  location            = azurerm_resource_group.rg.location
-  resource_group_name = azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
+  resource_group_name = data.azurerm_resource_group.rg.name
   sku                 = "PerGB2018"
   retention_in_days   = 30
 }
 
 resource "azurerm_container_app_environment" "env" {
   name                       = "${var.deployment_name}env"
-  location                   = azurerm_resource_group.rg.location
-  resource_group_name        = azurerm_resource_group.rg.name
+  location                   = data.azurerm_resource_group.rg.location
+  resource_group_name        = data.azurerm_resource_group.rg.name
   log_analytics_workspace_id = azurerm_log_analytics_workspace.law.id
 
   workload_profile {
@@ -35,14 +33,14 @@ resource "azurerm_container_app_environment" "env" {
 
 resource "azurerm_user_assigned_identity" "umi" {
   name                = "${var.deployment_name}-umi"
-  resource_group_name = azurerm_resource_group.rg.name
-  location            = var.region
+  resource_group_name = data.azurerm_resource_group.rg.name
+  location            = data.azurerm_resource_group.rg.location
 }
 
 resource "azurerm_container_app_job" "job" {
   name                         = "job-runner"
-  location                     = azurerm_resource_group.rg.location
-  resource_group_name          = azurerm_resource_group.rg.name
+  location                     = data.azurerm_resource_group.rg.location
+  resource_group_name          = data.azurerm_resource_group.rg.name
   container_app_environment_id = azurerm_container_app_environment.env.id
 
   workload_profile_name      = "Dedicated_D8"
@@ -99,8 +97,8 @@ resource "azurerm_container_app_job" "job" {
 
 resource "azurerm_container_registry" "acr" {
   name                   = "${var.deployment_name}acr"
-  resource_group_name    = azurerm_resource_group.rg.name
-  location               = azurerm_resource_group.rg.location
+  resource_group_name    = data.azurerm_resource_group.rg.name
+  location               = data.azurerm_resource_group.rg.location
   sku                    = "Premium"
   anonymous_pull_enabled = false
   admin_enabled          = false
