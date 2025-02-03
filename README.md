@@ -23,7 +23,7 @@ Most of the job build/run tasks are implemented as targets in the `Makefile` at 
 
 ### Cloud prerequisites
 
-In order to deploy the Talos pipeline in Azure, you will need access to an Azure subscription where you have the necessary permissions to create resources.
+In order to deploy the Talos pipeline in Azure, you will need access to an Azure subscription where you have the `Owner` role. This grants you the ability to create resources and assign RBAC roles, both of which are necessary for the deployment of Talos. If your IT policy doesn't permit this, there are other RBAC configuration policies, but they are outside the scope of this walkthrough. File an issue with your specific constraints and we may be able to help identify an alternative approach for your configuration.
 
 You will want to make note of the tenant ID and subscription ID for the Azure subscription you will be using. You can find these values by running the following commands in the Azure CLI after logging in:
 
@@ -65,6 +65,8 @@ terraform apply
 ```
 
 > Note: `deployment.env` is `.gitignore`'d - other developers collaborating on the same deployment will need their own local copy of this file.
+
+> Note: successful deployment requires that the necessary resource providers are registered with your subscription. If this has not previously been done, you may see an error message during deployment that looks something like: `The subscription is not registered to use namespace 'Microsoft.App'`. If this occurs, see [this article](https://learn.microsoft.com/en-us/azure/azure-resource-manager/troubleshooting/error-register-resource-provider?tabs=azure-cli) for steps on how to resolve the issue.
 
 ## Docker images
 
