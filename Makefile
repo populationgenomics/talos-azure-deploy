@@ -65,7 +65,7 @@ acr-login: get-deployment-vars
 .PHONY: get-job-status
 get-job-status: get-deployment-vars
 ifndef JOB_EXECUTION_NAME
-	az containerapp job execution list -n "job-runner" -g "talosmsr01-rg" --subscription $(DEPLOYMENT_SUBSCRIPTION) \
+	az containerapp job execution list -n "job-runner" -g $(DEPLOYMENT_RG) --subscription $(DEPLOYMENT_SUBSCRIPTION) \
 	--query '[].{Name: name, StartTime: properties.startTime, Status: properties.status}' --output table
 else
 	az containerapp job execution show -n job-runner -g $(DEPLOYMENT_RG) --subscription $(DEPLOYMENT_SUBSCRIPTION) \
