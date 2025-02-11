@@ -83,9 +83,6 @@ else
 	--container job-runner --execution $(JOB_EXECUTION_NAME) --format text
 endif
 
-# Note, if JOB_EXECUTION_NAME is provided, this target will currently raise a JSONDecodeError due to a known, 
-# unresolved issue with the Azure CLI. See https://github.com/Azure/azure-cli/issues/29849.
-# Despite this, the job will still be stopped.
 .PHONY: kill-job
 kill-job: get-deployment-vars
 ifndef JOB_EXECUTION_NAME
