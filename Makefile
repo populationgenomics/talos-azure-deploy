@@ -72,6 +72,27 @@ else
 	--job-execution-name $(JOB_EXECUTION_NAME) --output table
 endif
 
+.PHONY: tail-job-log
+tail-job-log: get-deployment-vars
+ifndef JOB_EXECUTION_NAME
+	@echo "Fetching logs for default execution."
+	az containerapp job logs show -n job-runner -g $(DEPLOYMENT_RG) --subscription $(DEPLOYMENT_SUBSCRIPTION) \
+	--container job-runner --format text
+else
+	az containerapp job logs show -n job-runner -g $(DEPLOYMENT_RG) --subscription $(DEPLOYMENT_SUBSCRIPTION) \
+	--container job-runner --execution $(JOB_EXECUTION_NAME) --format text
+endif
+
+.PHONY: kill-job
+kill-job: get-deployment-vars
+ifndef JOB_EXECUTION_NAME
+	@echo "Killing default job (latest)."
+	az containerapp job stop -n job-runner -g $(DEPLOYMENT_RG) --subscription $(DEPLOYMENT_SUBSCRIPTION)
+else
+	az containerapp job stop -n job-runner -g $(DEPLOYMENT_RG) --subscription $(DEPLOYMENT_SUBSCRIPTION) \
+	--job-execution-name $(JOB_EXECUTION_NAME)
+endif
+
 #################
 ### TALOS JOB
 .PHONY: push-talos-job
