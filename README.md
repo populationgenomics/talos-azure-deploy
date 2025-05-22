@@ -1,5 +1,7 @@
 # talos-deploy
 
+<mark>**Note: This repository provides a reference implementation for older versions of the Talos pipeline (`<= 6.1.3`). Deployment of newer versions of the Talos pipeline is more straightforward with fewer dependencies and we refer you to the [Talos GitHub repo](https://github.com/populationgenomics/talos) for updated deployment instructions and examples.**</mark>
+
 This repository provides a streamlined reference implementation for users to see an example of how to implement the [Talos](https://github.com/populationgenomics/talos) pipeline for genetic variant prioritization and reanalysis in Microsoft Azure. It is intended to facilitate quick evaluation of talos on small datasets, either synthetic sample data or user-provided data. Information on each of these use cases is provided below.
 
 This is not intended to be an exhaustive guide as to the myriad ways to implement the Talos pipeline in Azure, rather a starting point for users to get up and running quickly. There are two basic use cases supported by this repository:
